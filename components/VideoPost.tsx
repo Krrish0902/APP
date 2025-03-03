@@ -1,16 +1,16 @@
 // VideoPost.tsx
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { View, StyleSheet, Image, Dimensions, TouchableWithoutFeedback } from 'react-native';
+import { View, StyleSheet, Image, Dimensions, TouchableWithoutFeedback, ActivityIndicator } from 'react-native';
 import { Link } from 'expo-router';
-import { Video } from 'expo-av';
+import { Video, ResizeMode, AVPlaybackStatus, AVPlaybackStatusSuccess } from 'expo-av';
 import { useFocusEffect } from '@react-navigation/native';
 
-const { width, height } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface Artist {
   id: string;
   name: string;
-  avatar: string;
+  avatar: any; // Changed from string to any since we're using require()
 }
 
 interface VideoPostProps {
@@ -21,11 +21,21 @@ interface VideoPostProps {
   };
   onDoubleTap: () => void;
   isActive: boolean;
+  onError?: (error: string) => void;
+  isMuted: boolean;
+  onToggleMute: () => void;
 }
 
-export default function VideoPost({ video, onDoubleTap, isActive }: VideoPostProps) {
+export default function VideoPost({ 
+  video, 
+  onDoubleTap, 
+  isActive, 
+  onError: onErrorProp,
+  isMuted,
+  onToggleMute 
+}: VideoPostProps) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const videoRef = useRef<Video>(null);
   const lastTapRef = useRef<number>(0);
   const isLongPressing = useRef<boolean>(false);
@@ -44,17 +54,54 @@ export default function VideoPost({ video, onDoubleTap, isActive }: VideoPostPro
     }, [])
   );
 
-  // Modified isActive effect to respect user interactions
-  useEffect(() => {
-    if (videoRef.current && !userInteracted) {
-      if (isActive) {
-        videoRef.current.playAsync();
-        setIsPlaying(true);
-      } else {
-        videoRef.current.pauseAsync();
-        setIsPlaying(false);
+  // Handle video loading and errors
+  const onLoadStart = () => {
+    setIsLoading(true);
+  };
+
+  const onLoad = () => {
+    setIsLoading(false);
+  };
+
+  const handleError = (error: string) => {
+    setIsLoading(false);
+    onErrorProp?.(error);
+  };
+
+  // Handle video status updates
+  const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
+    if (!status.isLoaded) {
+      // Handle error state
+      if (status.error) {
+        handleError(`Video playback error: ${status.error}`);
       }
+      return;
     }
+
+    // Now TypeScript knows this is a loaded (success) status
+    const successStatus = status as AVPlaybackStatusSuccess;
+    setIsPlaying(successStatus.isPlaying);
+    setIsLoading(false);
+  };
+
+  // Effect to handle active state changes
+  useEffect(() => {
+    const handlePlayback = async () => {
+      if (!videoRef.current) return;
+
+      try {
+        if (isActive && !isLongPressing.current) {
+          await videoRef.current.playAsync();
+        } else {
+          await videoRef.current.pauseAsync();
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        handleError(`Failed to ${isActive ? 'play' : 'pause'} video: ${errorMessage}`);
+      }
+    };
+    
+    handlePlayback();
   }, [isActive]);
 
   const handlePress = () => {
@@ -66,39 +113,35 @@ export default function VideoPost({ video, onDoubleTap, isActive }: VideoPostPro
       onDoubleTap();
       lastTapRef.current = 0;
     } else {
-      // Single tap - ONLY toggle mute, don't affect playback
-      if (!isLongPressing.current) {
-        setIsMuted((prev) => {
-          const newMuted = !prev;
-          if (videoRef.current) {
-            // Just update the mute status, don't change playback state
-            videoRef.current.setStatusAsync({ isMuted: newMuted });
-          }
-          return newMuted;
-        });
-      }
+      // Single tap - ONLY toggle mute globally
+      onToggleMute();
       lastTapRef.current = now;
     }
   };
 
-  // Modified long press handler
-  const handleLongPress = () => {
-    isLongPressing.current = true;
-    setUserInteracted(true);
-    if (isPlaying && videoRef.current) {
-      videoRef.current.pauseAsync();
-      setIsPlaying(false);
+  const handleLongPress = async () => {
+    if (!isLongPressing.current && videoRef.current) {
+      isLongPressing.current = true;
+      setUserInteracted(true);
+      try {
+        const status = await videoRef.current.getStatusAsync();
+        if (status.isLoaded && status.isPlaying) {
+          await videoRef.current.pauseAsync();
+        }
+      } catch (error) {
+        console.log('Error handling long press:', error);
+      }
     }
   };
 
-  // Modified press out handler
-  const handlePressOut = () => {
-    if (isLongPressing.current) {
+  const handlePressOut = async () => {
+    if (isLongPressing.current && videoRef.current && isActive) {
       isLongPressing.current = false;
-      if (!isPlaying && videoRef.current && isActive) {
-        videoRef.current.playAsync();
-        setIsPlaying(true);
-        setUserInteracted(false); // Reset user interaction when resuming
+      setUserInteracted(false);
+      try {
+        await videoRef.current.playAsync();
+      } catch (error) {
+        console.log('Error handling press out:', error);
       }
     }
   };
@@ -115,17 +158,25 @@ export default function VideoPost({ video, onDoubleTap, isActive }: VideoPostPro
           <Video
             ref={videoRef}
             source={video.url}
-            style={StyleSheet.absoluteFillObject}
-            resizeMode="cover"
+            style={styles.video}
+            resizeMode={ResizeMode.COVER}
             isLooping
-            shouldPlay={false} // Playback is controlled via isActive
+            shouldPlay={isActive && !userInteracted}
             isMuted={isMuted}
+            onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+            onLoadStart={onLoadStart}
+            onLoad={onLoad}
+            onError={(error) => handleError(`Video loading error: ${error}`)}
           />
-          {/* Overlay border */}
-          <View style={styles.borderOverlay} pointerEvents="none" />
+          {isLoading && (
+            <View style={[StyleSheet.absoluteFillObject, styles.loadingContainer]}>
+              <ActivityIndicator size="large" color="#fff" />
+            </View>
+          )}
+         { /*<View style={styles.borderOverlay} pointerEvents="none" />*/}
         </View>
       </TouchableWithoutFeedback>
-      
+       
       <View style={styles.profilePhotoContainer}>
         <Link href={`/artist/${video.artist.id}`} asChild>
           <View style={styles.artistContainer}>
@@ -142,25 +193,36 @@ export default function VideoPost({ video, onDoubleTap, isActive }: VideoPostPro
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
-  videoWrapper: {
-    flex: 1,
-    borderRadius: 50,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#000',
+    borderRadius: 20,
     overflow: 'hidden',
   },
-  // The border overlay is absolutely positioned to cover the entire video area.
-  borderOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    borderWidth: 10,
-    borderColor: '#fff', // Adjust color as desired
-    borderRadius: 50,    // Ensure it matches videoWrapper radius
+  videoWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  video: {
+    position: 'absolute',
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+    top: 0,
+    left: 0,
+    borderRadius: 20,
   },
   profilePhotoContainer: {
     position: 'absolute',
-    bottom: 115,
-    left: '44.7%',
-    transform: [{ translateX: -25 }],
+    bottom: '20%',
+    alignSelf: 'center',
     alignItems: 'center',
     zIndex: 2,
   },
@@ -168,10 +230,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatar: {
-    width: 85,
-    height: 85,
-    borderRadius: 50,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     borderWidth: 2,
     borderColor: '#fff',
+  },
+  loadingContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
   },
 });

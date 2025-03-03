@@ -2,8 +2,11 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { View, StyleSheet, Image } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+  
   return (
     <GestureHandlerRootView style={styles.container}>
       <View style={styles.container}>
@@ -25,7 +28,7 @@ export default function TabLayout() {
               shadowOffset: { width: 0, height: 0 },
               shadowColor: 'transparent',
               position: 'absolute',
-              bottom: 55,
+              bottom: insets.bottom + 50,
               flexDirection: 'row',
               justifyContent: 'space-between',
               alignItems: 'center',
