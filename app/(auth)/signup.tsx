@@ -1,26 +1,20 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { signUpWithEmail } from '../../src/lib/auth';
 
 export default function SignUp() {
-  const [phoneNumber, setPhoneNumber] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSignUp = async () => {
-    if (!name || !email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+    if (!name || !email || !password) {
+      Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
 
@@ -52,103 +46,94 @@ export default function SignUp() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <View style={styles.header}>
-        <Image 
-          source={{ uri: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=800&auto=format&fit=crop&q=60' }}
-          style={styles.backgroundImage}
-        />
-        <View style={styles.overlay} />
-        <Text style={styles.title}>Join ArtistHub</Text>
-        <Text style={styles.subtitle}>Share your talent with the world</Text>
-      </View>
-
-      <View style={styles.form}>
-        <View style={styles.inputContainer}>
-          <Ionicons name="person" size={20} color="#666" style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your full name"
-            placeholderTextColor="#666"
-            value={name}
-            onChangeText={setName}
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Image 
+            source={require('../../assets/images/signup-art.png')} 
+            style={styles.illustration}
+            resizeMode="contain"
           />
+          <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit>Join ArtistHub</Text>
+          <Text style={styles.subtitle} numberOfLines={2}>Create your account to showcase your talent.</Text>
         </View>
 
-        <View style={styles.inputContainer}>
-          <Ionicons name="mail" size={20} color="#666" style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your email"
-            placeholderTextColor="#666"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Ionicons name="call" size={20} color="#666" style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your phone number (optional)"
-            placeholderTextColor="#666"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-            keyboardType="phone-pad"
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Ionicons name="lock-closed" size={20} color="#666" style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Create a password"
-            placeholderTextColor="#666"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-            autoCapitalize="none"
-          />
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <Ionicons 
-              name={showPassword ? "eye-off" : "eye"} 
-              size={20} 
-              color="#666" 
+        <View style={styles.form}>
+          <View style={styles.inputContainer}>
+            <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Full Name"
+              placeholderTextColor="#666"
+              value={name}
+              onChangeText={setName}
             />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="#666"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Mobile Number (Optional)"
+              placeholderTextColor="#666"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              keyboardType="phone-pad"
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#666"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <Ionicons 
+                name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                size={20} 
+                color="#666" 
+              />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity 
+            style={styles.signUpButton} 
+            onPress={handleSignUp}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.signUpButtonText} numberOfLines={1}>Create Account</Text>
+            )}
           </TouchableOpacity>
-        </View>
 
-        <View style={styles.inputContainer}>
-          <Ionicons name="lock-closed" size={20} color="#666" style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm password"
-            placeholderTextColor="#666"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry={!showPassword}
-            autoCapitalize="none"
-          />
-        </View>
-
-        <TouchableOpacity 
-          style={styles.signupButton} 
-          onPress={handleSignUp}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Create Account</Text>
-          )}
-        </TouchableOpacity>
-
-        <View style={styles.loginContainer}>
-          <Text style={styles.loginText}>Already have an account?</Text>
-          <Link href="/login" style={styles.loginLink}>
-            Log In
-          </Link>
+          <View style={styles.footer}>
+            <Text style={styles.footerText} numberOfLines={1}>Already have an account? </Text>
+            <Link href="/login" asChild>
+              <TouchableOpacity>
+                <Text style={styles.footerLink} numberOfLines={1}>Sign In</Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -158,100 +143,89 @@ export default function SignUp() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#fff',
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: '#fff',
   },
   header: {
-    height: '40%',
-    justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
-  },
-  backgroundImage: {
-    position: 'absolute',
+    marginBottom: 32,
     width: '100%',
-    height: '100%',
-    opacity: 0.7,
+    backgroundColor: '#fff',
   },
-  overlay: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+  illustration: {
+    width: 200,
+    height: 200,
+    marginBottom: 24,
   },
   title: {
-    fontSize: 42,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: 32,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 8,
     textAlign: 'center',
-    marginBottom: 10,
-    zIndex: 1,
-    paddingHorizontal: 20,
+    width: '100%',
   },
   subtitle: {
-    fontSize: 18,
-    color: '#fff',
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 32,
     textAlign: 'center',
-    opacity: 0.9,
-    zIndex: 1,
-    paddingHorizontal: 20,
+    width: '100%',
   },
   form: {
-    flex: 1,
-    backgroundColor: '#000',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    padding: 20,
-    gap: 20,
-    marginTop: -30,
+    width: '100%',
   },
   inputContainer: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#f5f5f5',
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 15,
-    minHeight: 50,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    height: 56,
+    width: '100%',
   },
   inputIcon: {
-    marginRight: 10,
+    marginRight: 12,
   },
   input: {
     flex: 1,
-    padding: 15,
-    color: '#fff',
+    color: '#1a1a1a',
     fontSize: 16,
     width: '100%',
   },
-  signupButton: {
+  signUpButton: {
     backgroundColor: '#0066ff',
-    padding: 15,
     borderRadius: 12,
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 50,
+    marginBottom: 24,
+    width: '100%',
   },
-  buttonText: {
+  signUpButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-    flexShrink: 1,
   },
-  loginContainer: {
+  footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 5,
-    marginTop: 20,
-    flexWrap: 'wrap',
-    paddingHorizontal: 20,
+    width: '100%',
   },
-  loginText: {
-    color: '#888',
+  footerText: {
+    color: '#666',
     fontSize: 14,
   },
-  loginLink: {
+  footerLink: {
     color: '#0066ff',
-    fontWeight: '600',
     fontSize: 14,
+    fontWeight: '600',
   },
 });

@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAllArtists, getVerifiedArtists } from '../../src/lib/artist';
 import { Link } from 'expo-router';
+import { useTheme } from '../../src/context/ThemeContext';
 
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -10,6 +11,7 @@ export default function SearchScreen() {
   const [filteredArtists, setFilteredArtists] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showVerifiedOnly, setShowVerifiedOnly] = useState(false);
+  const { theme } = useTheme();
 
   useEffect(() => {
     fetchArtists();
@@ -72,6 +74,134 @@ export default function SearchScreen() {
     </TouchableOpacity>
   );
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme === 'dark' ? '#000000' : '#FFFFFF',
+    },
+    header: {
+      paddingHorizontal: 20,
+      paddingTop: 60,
+      paddingBottom: 20,
+      backgroundColor: theme === 'dark' ? '#000000' : '#FFFFFF',
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme === 'dark' ? '#FFFFFF' : '#000000',
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingBottom: 15,
+      gap: 10,
+    },
+    searchBar: {
+      flex: 1,
+      backgroundColor: theme === 'dark' ? '#1a1a1a' : '#F5F5F5',
+      borderRadius: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 15,
+    },
+    searchIcon: {
+      marginRight: 10,
+    },
+    searchInput: {
+      flex: 1,
+      padding: 12,
+      color: theme === 'dark' ? '#FFFFFF' : '#000000',
+      fontSize: 16,
+    },
+    filterButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme === 'dark' ? '#1a1a1a' : '#F5F5F5',
+      paddingVertical: 12,
+      paddingHorizontal: 15,
+      borderRadius: 12,
+      gap: 5,
+    },
+    filterButtonActive: {
+      backgroundColor: '#0066ff',
+    },
+    filterText: {
+      color: theme === 'dark' ? '#666666' : '#999999',
+      fontSize: 14,
+    },
+    filterTextActive: {
+      color: '#FFFFFF',
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    artistList: {
+      padding: 20,
+    },
+    artistCard: {
+      flexDirection: 'row',
+      backgroundColor: theme === 'dark' ? '#1a1a1a' : '#F5F5F5',
+      borderRadius: 12,
+      marginBottom: 15,
+      overflow: 'hidden',
+    },
+    artistImage: {
+      width: 100,
+      height: 100,
+    },
+    artistInfo: {
+      flex: 1,
+      padding: 15,
+      justifyContent: 'space-between',
+    },
+    nameContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    artistName: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme === 'dark' ? '#FFFFFF' : '#000000',
+      marginRight: 5,
+    },
+    verifiedIcon: {
+      marginLeft: 5,
+    },
+    artistBio: {
+      fontSize: 14,
+      color: theme === 'dark' ? '#999999' : '#666666',
+      marginVertical: 5,
+    },
+    followButton: {
+      backgroundColor: theme === 'dark' ? '#333333' : '#E0E0E0',
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 15,
+      alignSelf: 'flex-start',
+      marginTop: 5,
+    },
+    followButtonText: {
+      color: theme === 'dark' ? '#FFFFFF' : '#000000',
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    emptyState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 40,
+    },
+    emptyStateText: {
+      color: theme === 'dark' ? '#666666' : '#999999',
+      fontSize: 16,
+      textAlign: 'center',
+      marginTop: 15,
+    },
+  });
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -80,17 +210,17 @@ export default function SearchScreen() {
 
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+          <Ionicons name="search" size={20} color={theme === 'dark' ? '#666666' : '#999999'} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search artists..."
-            placeholderTextColor="#666"
+            placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color="#666" />
+              <Ionicons name="close-circle" size={20} color={theme === 'dark' ? '#666666' : '#999999'} />
             </TouchableOpacity>
           )}
         </View>
@@ -102,7 +232,7 @@ export default function SearchScreen() {
           <Ionicons 
             name="checkmark-circle" 
             size={20} 
-            color={showVerifiedOnly ? "#fff" : "#666"} 
+            color={showVerifiedOnly ? "#FFFFFF" : theme === 'dark' ? '#666666' : '#999999'} 
           />
           <Text style={[styles.filterText, showVerifiedOnly && styles.filterTextActive]}>
             Verified
@@ -124,7 +254,7 @@ export default function SearchScreen() {
         />
       ) : (
         <View style={styles.emptyState}>
-          <Ionicons name="search-outline" size={48} color="#666" />
+          <Ionicons name="search-outline" size={48} color={theme === 'dark' ? '#666666' : '#999999'} />
           <Text style={styles.emptyStateText}>
             {searchQuery.length > 0 
               ? `No artists found for "${searchQuery}"`
@@ -135,131 +265,3 @@ export default function SearchScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-    backgroundColor: '#000',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 15,
-    gap: 10,
-  },
-  searchBar: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    padding: 12,
-    color: '#fff',
-    fontSize: 16,
-  },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1a1a1a',
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderRadius: 12,
-    gap: 5,
-  },
-  filterButtonActive: {
-    backgroundColor: '#0066ff',
-  },
-  filterText: {
-    color: '#666',
-    fontSize: 14,
-  },
-  filterTextActive: {
-    color: '#fff',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  artistList: {
-    padding: 20,
-  },
-  artistCard: {
-    flexDirection: 'row',
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    marginBottom: 15,
-    overflow: 'hidden',
-  },
-  artistImage: {
-    width: 100,
-    height: 100,
-  },
-  artistInfo: {
-    flex: 1,
-    padding: 15,
-    justifyContent: 'space-between',
-  },
-  nameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  artistName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginRight: 5,
-  },
-  verifiedIcon: {
-    marginLeft: 5,
-  },
-  artistBio: {
-    fontSize: 14,
-    color: '#999',
-    marginVertical: 5,
-  },
-  followButton: {
-    backgroundColor: '#333',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 15,
-    alignSelf: 'flex-start',
-    marginTop: 5,
-  },
-  followButtonText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  emptyStateText: {
-    color: '#666',
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 15,
-  },
-});

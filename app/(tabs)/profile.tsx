@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Dimensions, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { updateArtistProfile } from '../../src/lib/artist';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated';
+import { useTheme } from '../../src/context/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function ProfileScreen() {
   const { user, artist, signOut, refreshArtistProfile } = useAuth();
+  const { theme, toggleTheme, isDarkMode } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -18,6 +20,229 @@ export default function ProfileScreen() {
     bio: '',
     email: '',
     phone_num: '',
+  });
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme === 'dark' ? '#000000' : '#FFFFFF',
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme === 'dark' ? '#000000' : '#FFFFFF',
+    },
+    headerGradient: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 120,
+      zIndex: 1,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingTop: 60,
+      paddingBottom: 20,
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme === 'dark' ? '#FFFFFF' : '#000000',
+    },
+    signOutButton: {
+      padding: 8,
+      backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+      borderRadius: 12,
+    },
+    content: {
+      flex: 1,
+    },
+    profileHeader: {
+      alignItems: 'center',
+      paddingTop: 100,
+      paddingHorizontal: 20,
+      width: '100%',
+    },
+    avatarContainer: {
+      position: 'relative',
+      marginBottom: 20,
+    },
+    avatar: {
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      borderWidth: 3,
+      borderColor: '#0066ff',
+    },
+    onlineIndicator: {
+      position: 'absolute',
+      bottom: 5,
+      right: 5,
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: '#4CAF50',
+      borderWidth: 3,
+      borderColor: theme === 'dark' ? '#000000' : '#FFFFFF',
+    },
+    profileInfo: {
+      width: '100%',
+      alignItems: 'center',
+    },
+    username: {
+      fontSize: 16,
+      color: '#0066ff',
+      marginBottom: 5,
+    },
+    fullName: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: theme === 'dark' ? '#FFFFFF' : '#000000',
+      marginBottom: 10,
+      textAlign: 'center',
+      paddingHorizontal: 20,
+    },
+    bio: {
+      fontSize: 16,
+      color: theme === 'dark' ? '#999999' : '#666666',
+      textAlign: 'center',
+      marginBottom: 30,
+      paddingHorizontal: 20,
+      lineHeight: 24,
+      width: '100%',
+    },
+    statsContainer: {
+      width: '100%',
+      marginBottom: 30,
+      paddingHorizontal: 20,
+    },
+    statItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+      padding: 15,
+      borderRadius: 15,
+      marginBottom: 10,
+      width: '100%',
+    },
+    statIconContainer: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(0,102,255,0.1)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 15,
+    },
+    statTextContainer: {
+      flex: 1,
+    },
+    statValue: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme === 'dark' ? '#FFFFFF' : '#000000',
+      marginBottom: 2,
+      flexWrap: 'wrap',
+    },
+    statLabel: {
+      fontSize: 14,
+      color: theme === 'dark' ? '#666666' : '#999999',
+    },
+    editProfileButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0,102,255,0.1)',
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 25,
+      borderWidth: 1,
+      borderColor: '#0066ff',
+      marginHorizontal: 20,
+    },
+    editIcon: {
+      marginRight: 8,
+    },
+    editProfileText: {
+      color: '#0066ff',
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    editForm: {
+      width: '100%',
+      marginTop: 20,
+      paddingHorizontal: 20,
+    },
+    formField: {
+      marginBottom: 20,
+      width: '100%',
+    },
+    formLabel: {
+      color: theme === 'dark' ? '#999999' : '#666666',
+      fontSize: 14,
+      marginBottom: 8,
+      marginLeft: 4,
+    },
+    formInput: {
+      backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+      borderRadius: 12,
+      padding: 15,
+      color: theme === 'dark' ? '#FFFFFF' : '#000000',
+      fontSize: 16,
+      borderWidth: 1,
+      borderColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+      width: '100%',
+    },
+    bioInput: {
+      minHeight: 120,
+      textAlignVertical: 'top',
+    },
+    editButtons: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 30,
+      width: '100%',
+    },
+    editButton: {
+      flex: 0.48,
+      paddingVertical: 15,
+      borderRadius: 25,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    saveButton: {
+      backgroundColor: '#0066ff',
+    },
+    saveButtonText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    cancelButton: {
+      backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+    },
+    cancelButtonText: {
+      color: theme === 'dark' ? '#FFFFFF' : '#000000',
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    themeToggleContainer: {
+      position: 'absolute',
+      top: 60,
+      right: 70,
+      flexDirection: 'row',
+      alignItems: 'center',
+      zIndex: 2,
+    },
+    themeToggleText: {
+      color: theme === 'dark' ? '#FFFFFF' : '#000000',
+      marginRight: 8,
+      fontSize: 14,
+    },
   });
 
   useEffect(() => {
@@ -94,13 +319,22 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['rgba(0,0,0,0.8)', 'transparent']}
+        colors={[theme === 'dark' ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.8)', 'transparent']}
         style={styles.headerGradient}
       >
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Profile</Text>
+          <View style={styles.themeToggleContainer}>
+            <Text style={styles.themeToggleText}>{isDarkMode ? 'Dark' : 'Light'}</Text>
+            <Switch
+              value={isDarkMode}
+              onValueChange={toggleTheme}
+              trackColor={{ false: '#E0E0E0', true: '#333333' }}
+              thumbColor={isDarkMode ? '#FFFFFF' : '#000000'}
+            />
+          </View>
           <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
-            <Ionicons name="log-out-outline" size={24} color="#fff" />
+            <Ionicons name="log-out-outline" size={24} color={theme === 'dark' ? '#FFFFFF' : '#000000'} />
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -130,7 +364,7 @@ export default function ProfileScreen() {
                   value={editForm.name}
                   onChangeText={(text) => setEditForm({...editForm, name: text})}
                   placeholder="Your name"
-                  placeholderTextColor="#666"
+                  placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
                 />
               </View>
               
@@ -141,7 +375,7 @@ export default function ProfileScreen() {
                   value={editForm.email}
                   onChangeText={(text) => setEditForm({...editForm, email: text})}
                   placeholder="Your email"
-                  placeholderTextColor="#666"
+                  placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
                   keyboardType="email-address"
                 />
               </View>
@@ -153,7 +387,7 @@ export default function ProfileScreen() {
                   value={editForm.phone_num}
                   onChangeText={(text) => setEditForm({...editForm, phone_num: text})}
                   placeholder="Your phone number"
-                  placeholderTextColor="#666"
+                  placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
                   keyboardType="phone-pad"
                 />
               </View>
@@ -165,7 +399,7 @@ export default function ProfileScreen() {
                   value={editForm.bio}
                   onChangeText={(text) => setEditForm({...editForm, bio: text})}
                   placeholder="Tell us about yourself"
-                  placeholderTextColor="#666"
+                  placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
                   multiline
                 />
               </View>
@@ -251,213 +485,3 @@ export default function ProfileScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#000',
-  },
-  headerGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 120,
-    zIndex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  signOutButton: {
-    padding: 8,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
-  },
-  content: {
-    flex: 1,
-  },
-  profileHeader: {
-    alignItems: 'center',
-    paddingTop: 100,
-    paddingHorizontal: 20,
-    width: '100%',
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 20,
-  },
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3,
-    borderColor: '#0066ff',
-  },
-  onlineIndicator: {
-    position: 'absolute',
-    bottom: 5,
-    right: 5,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#4CAF50',
-    borderWidth: 3,
-    borderColor: '#000',
-  },
-  profileInfo: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  username: {
-    fontSize: 16,
-    color: '#0066ff',
-    marginBottom: 5,
-  },
-  fullName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 10,
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-  bio: {
-    fontSize: 16,
-    color: '#999',
-    textAlign: 'center',
-    marginBottom: 30,
-    paddingHorizontal: 20,
-    lineHeight: 24,
-    width: '100%',
-  },
-  statsContainer: {
-    width: '100%',
-    marginBottom: 30,
-    paddingHorizontal: 20,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    padding: 15,
-    borderRadius: 15,
-    marginBottom: 10,
-    width: '100%',
-  },
-  statIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,102,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  statTextContainer: {
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 2,
-    flexWrap: 'wrap',
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  editProfileButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,102,255,0.1)',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: '#0066ff',
-    marginHorizontal: 20,
-  },
-  editIcon: {
-    marginRight: 8,
-  },
-  editProfileText: {
-    color: '#0066ff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  editForm: {
-    width: '100%',
-    marginTop: 20,
-    paddingHorizontal: 20,
-  },
-  formField: {
-    marginBottom: 20,
-    width: '100%',
-  },
-  formLabel: {
-    color: '#999',
-    fontSize: 14,
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  formInput: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
-    padding: 15,
-    color: '#fff',
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    width: '100%',
-  },
-  bioInput: {
-    minHeight: 120,
-    textAlignVertical: 'top',
-  },
-  editButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 30,
-    width: '100%',
-  },
-  editButton: {
-    flex: 0.48,
-    paddingVertical: 15,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveButton: {
-    backgroundColor: '#0066ff',
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  cancelButton: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  cancelButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
