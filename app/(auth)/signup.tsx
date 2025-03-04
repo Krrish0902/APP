@@ -53,7 +53,7 @@ export default function SignUp() {
             style={styles.illustration}
             resizeMode="contain"
           />
-          <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit>Join ArtistHub</Text>
+          <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit>Join BEHANCE</Text>
           <Text style={styles.subtitle} numberOfLines={2}>Create your account to showcase your talent.</Text>
         </View>
 

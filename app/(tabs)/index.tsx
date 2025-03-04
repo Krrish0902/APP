@@ -1,13 +1,18 @@
 // HomeScreen.tsx
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Dimensions, StatusBar, ViewToken, ListRenderItemInfo, Platform } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, StatusBar, ViewToken, ListRenderItemInfo, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { FlatList } from 'react-native-gesture-handler';
 import VideoPost from '../../components/VideoPost';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 
 // Get screen dimensions and add extra padding to ensure proper spacing
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Prevent the splash screen from auto-hiding
+SplashScreen.preventAutoHideAsync();
 
 // Remove the fixed TAB_BAR_HEIGHT and calculate content height dynamically
 const getContentHeight = (insets: { top: number; bottom: number }) => {
@@ -30,7 +35,12 @@ interface Video {
 }
 
 export default function HomeScreen() {
+  // All hooks must be at the top level
+  const [fontsLoaded] = useFonts({
+    'Meddon': require('../../assets/fonts/Meddon-Regular.ttf'),
+  });
   const insets = useSafeAreaInsets();
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(true);
@@ -110,9 +120,22 @@ export default function HomeScreen() {
     </View>
   ), [currentIndex, handleVideoError, isMuted, handleToggleMute]);
 
+  React.useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar translucent backgroundColor="transparent" />
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>BEHANCE</Text>
+      </View>
       <View style={styles.videoContainer}>
         <FlatList
           data={videos}
@@ -151,7 +174,24 @@ const styles = StyleSheet.create({
   },
   videoContainer: {
     width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT ,
+    height: SCREEN_HEIGHT,
     backgroundColor: '#000',
+  },
+  header: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontFamily: 'Meddon',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 5,
   },
 });

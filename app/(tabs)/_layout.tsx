@@ -10,10 +10,6 @@ export default function TabLayout() {
   return (
     <GestureHandlerRootView style={styles.container}>
       <View style={styles.container}>
-        <Image
-          source={require('../../assets/images/LOGO_1.png')}
-          style={styles.logo}
-        />
         <Tabs
           screenOptions={{
             headerShown: false,
@@ -82,14 +78,6 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  logo: {
-    position: 'absolute',
-    top: 40,
-    left: 175,
-    width: 70,
-    height: 70,
-    zIndex: 1,
   },
   // For the tabs that need a circular white background (profile & search)
   tabIconWrapper: {
