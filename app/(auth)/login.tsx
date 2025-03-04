@@ -1,18 +1,33 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, StatusBar } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { signInWithEmail } from '../../src/lib/auth';
+import { useTheme } from '../../src/context/ThemeContext';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { theme } = useTheme();
 
-  const handleSignIn = async () => {
+  const titleStyle = StyleSheet.create({
+    title: {
+      fontSize: 32,
+      fontWeight: '600',
+      color: theme === 'dark' ? '#FFFFFF' : '#000000',
+      marginBottom: 8,
+      textAlign: 'center',
+      textShadowColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.25)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
+    }
+  }).title;
+
+  const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password');
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
@@ -20,11 +35,11 @@ export default function Login() {
       setIsLoading(true);
       const { data, error } = await signInWithEmail(email, password);
       
-      if (error) {
-        Alert.alert('Error', (error as { message?: string }).message || 'Failed to sign in');
+      if (error && typeof error === 'object' && 'message' in error) {
+        Alert.alert('Error', error.message as string || 'Failed to sign in');
         return;
       }
-      
+
       if (data) {
         router.replace('/(tabs)');
       }
@@ -41,150 +56,158 @@ export default function Login() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Image 
-            source={require('../../assets/images/login-art.png')} 
-            style={styles.illustration}
-            resizeMode="contain"
-          />
-          <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit>Welcome Back</Text>
-          <Text style={styles.subtitle} numberOfLines={2}>Please sign in to continue.</Text>
-        </View>
-
-        <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#666"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
+    <>
+      <StatusBar 
+        barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={theme === 'dark' ? '#000000' : '#FFFFFF'}
+        translucent
+      />
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={[styles.container, { 
+          backgroundColor: theme === 'dark' ? '#000000' : '#FFFFFF',
+          paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+        }]}
+      >
+        <View style={[styles.content, {
+          backgroundColor: theme === 'dark' ? '#000000' : '#FFFFFF',
+        }]}>
+          <View style={styles.header}>
+            <Image 
+              source={require('../../assets/images/login-art.png')} 
+              style={styles.illustration}
+              resizeMode="contain"
             />
+            <Text style={titleStyle} numberOfLines={1} adjustsFontSizeToFit>
+              Welcome Back
+            </Text>
+            <Text style={[styles.subtitle, { color: theme === 'dark' ? '#999999' : '#666666' }]} numberOfLines={2}>
+              Please sign in to continue.
+            </Text>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#666"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons 
-                name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                size={20} 
-                color="#666" 
+          <View style={styles.form}>
+            <View style={[styles.inputContainer, { 
+              backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : '#F5F5F5'
+            }]}>
+              <Ionicons name="mail-outline" size={20} color={theme === 'dark' ? '#999999' : '#666666'} style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}
+                placeholder="Email"
+                placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
               />
-            </TouchableOpacity>
-          </View>
+            </View>
 
-          <TouchableOpacity 
-            style={styles.signInButton} 
-            onPress={handleSignIn}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.signInButtonText} numberOfLines={1}>Sign In</Text>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText} numberOfLines={1}>Don't have an account? </Text>
-            <Link href="/signup" asChild>
-              <TouchableOpacity>
-                <Text style={styles.footerLink} numberOfLines={1}>Sign Up</Text>
+            <View style={[styles.inputContainer, { 
+              backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : '#F5F5F5'
+            }]}>
+              <Ionicons name="lock-closed-outline" size={20} color={theme === 'dark' ? '#999999' : '#666666'} style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}
+                placeholder="Password"
+                placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <Ionicons 
+                  name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                  size={20} 
+                  color={theme === 'dark' ? '#999999' : '#666666'} 
+                />
               </TouchableOpacity>
-            </Link>
+            </View>
+
+            <TouchableOpacity 
+              style={styles.loginButton} 
+              onPress={handleLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.loginButtonText} numberOfLines={1}>Sign In</Text>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.footer}>
+              <Text style={[styles.footerText, { color: theme === 'dark' ? '#999999' : '#666666' }]} numberOfLines={1}>
+                Don't have an account?{' '}
+              </Text>
+              <Link href="/signup" asChild>
+                <TouchableOpacity>
+                  <Text style={styles.footerLink} numberOfLines={1}>Sign Up</Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
           </View>
         </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#fff',
+    padding: 30,
   },
   header: {
     alignItems: 'center',
     marginBottom: 32,
-    width: '100%',
-    backgroundColor: '#fff',
   },
   illustration: {
-    width: 200,
+    width: '100%',
     height: 200,
     marginBottom: 24,
   },
   title: {
     fontSize: 32,
     fontWeight: '600',
-    color: '#1a1a1a',
     marginBottom: 8,
     textAlign: 'center',
-    width: '100%',
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
     marginBottom: 32,
     textAlign: 'center',
-    width: '100%',
   },
   form: {
     width: '100%',
   },
   inputContainer: {
-    backgroundColor: '#f5f5f5',
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     marginBottom: 16,
     height: 56,
-    width: '100%',
   },
   inputIcon: {
     marginRight: 12,
   },
   input: {
     flex: 1,
-    color: '#1a1a1a',
     fontSize: 16,
-    width: '100%',
   },
-  signInButton: {
+  loginButton: {
     backgroundColor: '#0066ff',
     borderRadius: 12,
     height: 56,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
-    width: '100%',
   },
-  signInButtonText: {
+  loginButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
@@ -193,10 +216,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    width: '100%',
   },
   footerText: {
-    color: '#666',
     fontSize: 14,
   },
   footerLink: {

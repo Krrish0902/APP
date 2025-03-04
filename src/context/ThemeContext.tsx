@@ -1,34 +1,40 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from './AuthContext';
 
-type ThemeType = 'light' | 'dark';
+type Theme = 'light' | 'dark';
 
 interface ThemeContextType {
-  theme: ThemeType;
-  toggleTheme: () => void;
+  theme: Theme;
   isDarkMode: boolean;
+  toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
   theme: 'light',
-  toggleTheme: () => {},
   isDarkMode: false,
+  toggleTheme: () => {},
 });
 
 export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<ThemeType>('light');
+  const [theme, setTheme] = useState<Theme>('light');
+  const { user } = useAuth();
+
+  const getThemeKey = () => {
+    return user ? `theme_${user.id}` : 'theme_default';
+  };
 
   useEffect(() => {
     loadTheme();
-  }, []);
+  }, [user]); // Reload theme when user changes
 
   const loadTheme = async () => {
     try {
-      const savedTheme = await AsyncStorage.getItem('theme');
+      const savedTheme = await AsyncStorage.getItem(getThemeKey());
       if (savedTheme) {
-        setTheme(savedTheme as ThemeType);
+        setTheme(savedTheme as Theme);
       }
     } catch (error) {
       console.error('Error loading theme:', error);
@@ -39,14 +45,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
     try {
-      await AsyncStorage.setItem('theme', newTheme);
+      await AsyncStorage.setItem(getThemeKey(), newTheme);
     } catch (error) {
       console.error('Error saving theme:', error);
     }
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, isDarkMode: theme === 'dark' }}>
+    <ThemeContext.Provider value={{ theme, isDarkMode: theme === 'dark', toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

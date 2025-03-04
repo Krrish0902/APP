@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { createArtistProfile } from './artist';
+import { createArtistProfile, uploadProfilePicture } from './artist';
 
 // SecureStore is not available on web, so we use localStorage as a fallback
 const storeItem = async (key: string, value: string) => {
@@ -28,7 +28,13 @@ const removeItem = async (key: string) => {
 };
 
 // Auth functions
-export const signUpWithEmail = async (email: string, password: string, fullName: string, phoneNumber: string) => {
+export const signUpWithEmail = async (
+  email: string, 
+  password: string, 
+  fullName: string, 
+  phoneNumber: string,
+  profilePicture?: string | null
+) => {
   try {
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -56,6 +62,14 @@ export const signUpWithEmail = async (email: string, password: string, fullName:
         phone_num: phoneNumber ? parseInt(phoneNumber) : undefined,
         bio: `Artist profile for ${fullName}`,
       });
+
+      // Upload profile picture if provided
+      if (profilePicture) {
+        const { publicUrl, error: uploadError } = await uploadProfilePicture(data.user.id, profilePicture);
+        if (uploadError) {
+          console.error('Error uploading profile picture:', uploadError);
+        }
+      }
     }
 
     return { data, error: null };

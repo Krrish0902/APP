@@ -1,56 +1,103 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getAllArtists, getVerifiedArtists } from '../../src/lib/artist';
-import { Link } from 'expo-router';
+import { searchArtists } from '../../src/lib/artist';
+import { Link, useRouter } from 'expo-router';
 import { useTheme } from '../../src/context/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInUp } from 'react-native-reanimated';
+import { useAuth } from '../../src/context/AuthContext';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+interface Artist {
+  id: string;
+  name: string;
+  profile_picture_url: string;
+  bio: string;
+  is_verified: boolean;
+}
 
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [artists, setArtists] = useState<any[]>([]);
-  const [filteredArtists, setFilteredArtists] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<Artist[]>([]);
+  const [viewedArtists, setViewedArtists] = useState<Artist[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showVerifiedOnly, setShowVerifiedOnly] = useState(false);
   const { theme } = useTheme();
+  const { user } = useAuth();
+  const router = useRouter();
 
-  useEffect(() => {
-    fetchArtists();
-  }, [showVerifiedOnly]);
+  const getStorageKey = () => {
+    return user ? `viewedArtists_${user.id}` : 'viewedArtists_guest';
+  };
 
+  // Load viewed artists from storage on mount and when user changes
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredArtists(artists);
-    } else {
-      const filtered = artists.filter(artist => 
-        artist.name?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setFilteredArtists(filtered);
+    loadViewedArtists();
+  }, [user]); // Reload when user changes
+
+  const loadViewedArtists = async () => {
+    try {
+      const viewed = await AsyncStorage.getItem(getStorageKey());
+      if (viewed) {
+        setViewedArtists(JSON.parse(viewed));
+      } else {
+        setViewedArtists([]); // Reset list if no data found for current user
+      }
+    } catch (error) {
+      console.error('Error loading viewed artists:', error);
     }
-  }, [searchQuery, artists]);
+  };
 
-  const fetchArtists = async () => {
+  const saveViewedArtists = async (artists: Artist[]) => {
+    try {
+      await AsyncStorage.setItem(getStorageKey(), JSON.stringify(artists));
+    } catch (error) {
+      console.error('Error saving viewed artists:', error);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (searchQuery.trim() === '') {
+      setSearchResults([]);
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const { artists: artistsData, error } = showVerifiedOnly 
-        ? await getVerifiedArtists() 
-        : await getAllArtists();
-      
+      const { artists, error } = await searchArtists(searchQuery);
       if (error) throw error;
-      setArtists(artistsData || []);
-      setFilteredArtists(artistsData || []);
+      setSearchResults(artists || []);
     } catch (error) {
-      console.error('Error fetching artists:', error);
+      console.error('Error searching artists:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const toggleVerifiedFilter = () => {
-    setShowVerifiedOnly(!showVerifiedOnly);
+  const addToViewedArtists = (artist: Artist) => {
+    const updatedViewed = [artist, ...viewedArtists.filter(a => a.id !== artist.id)].slice(0, 10);
+    setViewedArtists(updatedViewed);
+    saveViewedArtists(updatedViewed);
   };
 
-  const renderArtistItem = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.artistCard}>
+  const removeFromViewed = (artistId: string) => {
+    const updatedViewed = viewedArtists.filter(artist => artist.id !== artistId);
+    setViewedArtists(updatedViewed);
+    saveViewedArtists(updatedViewed);
+  };
+
+  const navigateToArtist = (artist: Artist) => {
+    addToViewedArtists(artist);
+    router.push(`/artist/${artist.id}`);
+  };
+
+  const renderArtistItem = ({ item }: { item: Artist }) => (
+    <TouchableOpacity 
+      style={styles.artistCard}
+      onPress={() => navigateToArtist(item)}
+    >
       <Image 
         source={{ 
           uri: item.profile_picture_url || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
@@ -67,11 +114,41 @@ export default function SearchScreen() {
         <Text style={styles.artistBio} numberOfLines={2}>
           {item.bio || 'No bio available'}
         </Text>
-        <TouchableOpacity style={styles.followButton}>
-          <Text style={styles.followButtonText}>Follow</Text>
-        </TouchableOpacity>
       </View>
     </TouchableOpacity>
+  );
+
+  const renderViewedArtistItem = ({ item }: { item: Artist }) => (
+    <View style={styles.artistCard}>
+      <TouchableOpacity 
+        style={styles.artistContent}
+        onPress={() => navigateToArtist(item)}
+      >
+        <Image 
+          source={{ 
+            uri: item.profile_picture_url || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
+          }}
+          style={styles.artistImage}
+        />
+        <View style={styles.artistInfo}>
+          <View style={styles.nameContainer}>
+            <Text style={styles.artistName}>{item.name}</Text>
+            {item.is_verified && (
+              <Ionicons name="checkmark-circle" size={16} color="#0066ff" style={styles.verifiedIcon} />
+            )}
+          </View>
+          <Text style={styles.artistBio} numberOfLines={2}>
+            {item.bio || 'No bio available'}
+          </Text>
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity 
+        style={styles.removeButton}
+        onPress={() => removeFromViewed(item.id)}
+      >
+        <Ionicons name="close-circle" size={24} color={theme === 'dark' ? '#666666' : '#999999'} />
+      </TouchableOpacity>
+    </View>
   );
 
   const styles = StyleSheet.create({
@@ -79,59 +156,45 @@ export default function SearchScreen() {
       flex: 1,
       backgroundColor: theme === 'dark' ? '#000000' : '#FFFFFF',
     },
+    headerGradient: {
+      paddingTop: 60,
+      paddingBottom: 15,
+      zIndex: 1,
+    },
     header: {
       paddingHorizontal: 20,
-      paddingTop: 60,
-      paddingBottom: 20,
-      backgroundColor: theme === 'dark' ? '#000000' : '#FFFFFF',
+      marginBottom: 15,
     },
     headerTitle: {
-      fontSize: 24,
-      fontWeight: 'bold',
+      fontSize: 28,
+      fontWeight: '700',
       color: theme === 'dark' ? '#FFFFFF' : '#000000',
+      letterSpacing: 0.5,
     },
     searchContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
       paddingHorizontal: 20,
-      paddingBottom: 15,
-      gap: 10,
     },
     searchBar: {
-      flex: 1,
-      backgroundColor: theme === 'dark' ? '#1a1a1a' : '#F5F5F5',
-      borderRadius: 12,
+      backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+      borderRadius: 16,
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: 15,
+      height: 50,
+      shadowColor: theme === 'dark' ? '#000000' : '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: theme === 'dark' ? 0.5 : 0.1,
+      shadowRadius: 4,
+      elevation: 3,
     },
     searchIcon: {
       marginRight: 10,
     },
     searchInput: {
       flex: 1,
-      padding: 12,
       color: theme === 'dark' ? '#FFFFFF' : '#000000',
       fontSize: 16,
-    },
-    filterButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: theme === 'dark' ? '#1a1a1a' : '#F5F5F5',
-      paddingVertical: 12,
-      paddingHorizontal: 15,
-      borderRadius: 12,
-      gap: 5,
-    },
-    filterButtonActive: {
-      backgroundColor: '#0066ff',
-    },
-    filterText: {
-      color: theme === 'dark' ? '#666666' : '#999999',
-      fontSize: 14,
-    },
-    filterTextActive: {
-      color: '#FFFFFF',
+      height: '100%',
     },
     loadingContainer: {
       flex: 1,
@@ -139,128 +202,163 @@ export default function SearchScreen() {
       alignItems: 'center',
     },
     artistList: {
+      flex: 1,
+    },
+    listContent: {
       padding: 20,
+      paddingTop: 10,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: theme === 'dark' ? '#FFFFFF' : '#000000',
+      marginBottom: 20,
+      letterSpacing: 0.5,
     },
     artistCard: {
       flexDirection: 'row',
-      backgroundColor: theme === 'dark' ? '#1a1a1a' : '#F5F5F5',
-      borderRadius: 12,
+      backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
+      borderRadius: 16,
       marginBottom: 15,
       overflow: 'hidden',
+      shadowColor: theme === 'dark' ? '#000000' : '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: theme === 'dark' ? 0.5 : 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    artistContent: {
+      flex: 1,
+      flexDirection: 'row',
     },
     artistImage: {
-      width: 100,
-      height: 100,
+      width: 90,
+      height: 90,
+      borderRadius: 12,
+      margin: 10,
     },
     artistInfo: {
       flex: 1,
       padding: 15,
-      justifyContent: 'space-between',
+      justifyContent: 'center',
     },
     nameContainer: {
       flexDirection: 'row',
       alignItems: 'center',
+      marginBottom: 6,
     },
     artistName: {
       fontSize: 18,
-      fontWeight: 'bold',
+      fontWeight: '600',
       color: theme === 'dark' ? '#FFFFFF' : '#000000',
       marginRight: 5,
+      letterSpacing: 0.3,
     },
     verifiedIcon: {
-      marginLeft: 5,
+      marginLeft: 4,
     },
     artistBio: {
       fontSize: 14,
       color: theme === 'dark' ? '#999999' : '#666666',
-      marginVertical: 5,
+      lineHeight: 20,
     },
-    followButton: {
-      backgroundColor: theme === 'dark' ? '#333333' : '#E0E0E0',
-      paddingVertical: 6,
-      paddingHorizontal: 12,
-      borderRadius: 15,
-      alignSelf: 'flex-start',
-      marginTop: 5,
-    },
-    followButtonText: {
-      color: theme === 'dark' ? '#FFFFFF' : '#000000',
-      fontSize: 12,
-      fontWeight: '600',
+    removeButton: {
+      padding: 15,
+      justifyContent: 'center',
     },
     emptyState: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      paddingHorizontal: 40,
+      paddingVertical: 60,
+    },
+    emptyStateIcon: {
+      marginBottom: 16,
+      opacity: 0.5,
     },
     emptyStateText: {
       color: theme === 'dark' ? '#666666' : '#999999',
       fontSize: 16,
       textAlign: 'center',
-      marginTop: 15,
+      maxWidth: SCREEN_WIDTH * 0.7,
+      lineHeight: 22,
     },
   });
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Discover Artists</Text>
-      </View>
-
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color={theme === 'dark' ? '#666666' : '#999999'} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search artists..."
-            placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color={theme === 'dark' ? '#666666' : '#999999'} />
-            </TouchableOpacity>
-          )}
+      <LinearGradient
+        colors={[theme === 'dark' ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.1)', 'transparent']}
+        style={styles.headerGradient}
+      >
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Discover Artists</Text>
         </View>
-
-        <TouchableOpacity 
-          style={[styles.filterButton, showVerifiedOnly && styles.filterButtonActive]}
-          onPress={toggleVerifiedFilter}
-        >
-          <Ionicons 
-            name="checkmark-circle" 
-            size={20} 
-            color={showVerifiedOnly ? "#FFFFFF" : theme === 'dark' ? '#666666' : '#999999'} 
-          />
-          <Text style={[styles.filterText, showVerifiedOnly && styles.filterTextActive]}>
-            Verified
-          </Text>
-        </TouchableOpacity>
-      </View>
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Ionicons 
+              name="search-outline" 
+              size={20} 
+              color={theme === 'dark' ? '#666666' : '#999999'} 
+              style={styles.searchIcon} 
+            />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search artists..."
+              placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons 
+                  name="close-circle" 
+                  size={20} 
+                  color={theme === 'dark' ? '#666666' : '#999999'} 
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </LinearGradient>
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0066ff" />
         </View>
-      ) : filteredArtists.length > 0 ? (
-        <FlatList
-          data={filteredArtists}
-          renderItem={renderArtistItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.artistList}
-          showsVerticalScrollIndicator={false}
-        />
       ) : (
-        <View style={styles.emptyState}>
-          <Ionicons name="search-outline" size={48} color={theme === 'dark' ? '#666666' : '#999999'} />
-          <Text style={styles.emptyStateText}>
-            {searchQuery.length > 0 
-              ? `No artists found for "${searchQuery}"`
-              : 'No artists available'}
-          </Text>
-        </View>
+        <FlatList
+          style={styles.artistList}
+          data={searchQuery ? searchResults : viewedArtists}
+          renderItem={searchQuery ? renderArtistItem : renderViewedArtistItem}
+          keyExtractor={(item) => item.id}
+          ListHeaderComponent={
+            !searchQuery && viewedArtists.length > 0 ? (
+              <Animated.View entering={FadeInUp}>
+                <Text style={styles.sectionTitle}>Recently Viewed</Text>
+              </Animated.View>
+            ) : null
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons 
+                name={searchQuery ? "search" : "time-outline"} 
+                size={48} 
+                color={theme === 'dark' ? '#333333' : '#CCCCCC'} 
+                style={styles.emptyStateIcon}
+              />
+              <Text style={styles.emptyStateText}>
+                {searchQuery 
+                  ? 'No artists found. Try a different search.' 
+                  : 'No recently viewed artists'}
+              </Text>
+            </View>
+          }
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+        />
       )}
     </View>
   );

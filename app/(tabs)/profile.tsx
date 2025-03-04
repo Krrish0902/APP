@@ -3,12 +3,16 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIn
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
-import { updateArtistProfile } from '../../src/lib/artist';
+import { updateArtistProfile, updateArtistProfilePicture, deleteProfilePicture } from '../../src/lib/artist';
+import { Tables } from '../../src/lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated';
 import { useTheme } from '../../src/context/ThemeContext';
+import * as ImagePicker from 'expo-image-picker';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+type Artist = Tables['Artist']['Row'];
 
 export default function ProfileScreen() {
   const { user, artist, signOut, refreshArtistProfile } = useAuth();
@@ -90,14 +94,31 @@ export default function ProfileScreen() {
       borderWidth: 3,
       borderColor: theme === 'dark' ? '#000000' : '#FFFFFF',
     },
+    editOverlay: {
+      position: 'absolute',
+      bottom: 0,
+      right: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      borderRadius: 20,
+      padding: 8,
+    },
     profileInfo: {
       width: '100%',
       alignItems: 'center',
     },
+    usernameContainer: {
+      maxWidth: '90%',
+      backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      borderRadius: 20,
+      marginBottom: 8,
+    },
     username: {
-      fontSize: 16,
+      fontSize: 14,
       color: '#0066ff',
-      marginBottom: 5,
+      textAlign: 'center',
+      fontWeight: '500',
     },
     fullName: {
       fontSize: 28,
@@ -106,6 +127,7 @@ export default function ProfileScreen() {
       marginBottom: 10,
       textAlign: 'center',
       paddingHorizontal: 20,
+      maxWidth: SCREEN_WIDTH - 40,
     },
     bio: {
       fontSize: 16,
@@ -129,6 +151,7 @@ export default function ProfileScreen() {
       borderRadius: 15,
       marginBottom: 10,
       width: '100%',
+      overflow: 'hidden',
     },
     statIconContainer: {
       width: 40,
@@ -138,9 +161,11 @@ export default function ProfileScreen() {
       justifyContent: 'center',
       alignItems: 'center',
       marginRight: 15,
+      flexShrink: 0,
     },
     statTextContainer: {
       flex: 1,
+      marginRight: 8,
     },
     statValue: {
       fontSize: 16,
@@ -148,6 +173,7 @@ export default function ProfileScreen() {
       color: theme === 'dark' ? '#FFFFFF' : '#000000',
       marginBottom: 2,
       flexWrap: 'wrap',
+      maxWidth: SCREEN_WIDTH - 120,
     },
     statLabel: {
       fontSize: 14,
@@ -237,11 +263,16 @@ export default function ProfileScreen() {
       flexDirection: 'row',
       alignItems: 'center',
       zIndex: 2,
+      backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 20,
     },
     themeToggleText: {
       color: theme === 'dark' ? '#FFFFFF' : '#000000',
       marginRight: 8,
-      fontSize: 14,
+      fontSize: 12,
+      fontWeight: '600',
     },
   });
 
@@ -308,6 +339,91 @@ export default function ProfileScreen() {
     setIsEditing(false);
   };
 
+  const handleUpdateProfilePicture = async () => {
+    if (!user) return;
+
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow access to your photo library to update your profile picture.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets[0].base64) {
+        setIsLoading(true);
+        const { success, url, error } = await updateArtistProfilePicture(
+          user.id,
+          `data:image/jpeg;base64,${result.assets[0].base64}`
+        );
+
+        if (success && url) {
+          await refreshArtistProfile();
+          Alert.alert('Success', 'Profile picture updated successfully');
+        } else {
+          Alert.alert('Error', 'Failed to update profile picture. Please try again.');
+        }
+      }
+    } catch (error) {
+      console.error('Error updating profile picture:', error);
+      Alert.alert('Error', 'Failed to update profile picture. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLongPressAvatar = () => {
+    if (!user) return;
+
+    Alert.alert(
+      'Profile Picture',
+      'What would you like to do?',
+      [
+        {
+          text: 'Update Picture',
+          onPress: handleUpdateProfilePicture
+        },
+        {
+          text: 'Remove Picture',
+          onPress: handleRemoveProfilePicture,
+          style: 'destructive'
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        }
+      ]
+    );
+  };
+
+  const handleRemoveProfilePicture = async () => {
+    if (!user) return;
+
+    try {
+      setIsLoading(true);
+      const { success, error } = await deleteProfilePicture(user.id);
+
+      if (success) {
+        await refreshArtistProfile();
+        Alert.alert('Success', 'Profile picture removed successfully');
+      } else {
+        Alert.alert('Error', 'Failed to remove profile picture. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error removing profile picture:', error);
+      Alert.alert('Error', 'Failed to remove profile picture. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (!artist) {
     return (
       <View style={styles.loadingContainer}>
@@ -341,15 +457,23 @@ export default function ProfileScreen() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.profileHeader}>
-          <View style={styles.avatarContainer}>
+          <TouchableOpacity 
+            style={styles.avatarContainer}
+            onPress={handleUpdateProfilePicture}
+            onLongPress={handleLongPressAvatar}
+            delayLongPress={500}
+          >
             <Image 
               source={{ 
-                uri: 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
+                uri: (artist as any).profile_picture_url || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
               }}
               style={styles.avatar}
             />
             <View style={styles.onlineIndicator} />
-          </View>
+            <View style={styles.editOverlay}>
+              <Ionicons name="camera" size={24} color="#fff" />
+            </View>
+          </TouchableOpacity>
           
           {isEditing ? (
             <Animated.View 
@@ -430,7 +554,9 @@ export default function ProfileScreen() {
               entering={FadeInUp}
               style={styles.profileInfo}
             >
-              <Text style={styles.username}>@{artist.user_id}</Text>
+              <View style={styles.usernameContainer}>
+                <Text style={styles.username} numberOfLines={1}>@{artist.user_id}</Text>
+              </View>
               <Text style={styles.fullName}>{artist.name || 'No Name Set'}</Text>
               
               {artist.bio ? (

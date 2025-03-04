@@ -2,8 +2,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { View, StyleSheet, Image, Dimensions, TouchableWithoutFeedback, ActivityIndicator } from 'react-native';
 import { Link } from 'expo-router';
-import { ResizeMode } from 'expo-av';
-import ExpoVideo from 'expo-video';
+import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { useFocusEffect } from '@react-navigation/native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -37,7 +36,7 @@ export default function VideoPost({
 }: VideoPostProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const videoRef = useRef<ExpoVideo>(null);
+  const videoRef = useRef<Video>(null);
   const lastTapRef = useRef<number>(0);
   const isLongPressing = useRef<boolean>(false);
   const [userInteracted, setUserInteracted] = useState(false);
@@ -70,7 +69,7 @@ export default function VideoPost({
   };
 
   // Handle video status updates
-  const onPlaybackStatusUpdate = (status: any) => {
+  const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
     if (!status.isLoaded) {
       // Handle error state
       if (status.error) {
@@ -154,7 +153,7 @@ export default function VideoPost({
         delayLongPress={500}
       >
         <View style={styles.videoWrapper}>
-          <ExpoVideo
+          <Video
             ref={videoRef}
             source={video.url}
             style={styles.video}
@@ -165,7 +164,7 @@ export default function VideoPost({
             onPlaybackStatusUpdate={onPlaybackStatusUpdate}
             onLoadStart={onLoadStart}
             onLoad={onLoad}
-            onError={(error: Error) => handleError(`Video loading error: ${error.message}`)}
+            onError={(error) => handleError(error)}
           />
           {isLoading && (
             <View style={[StyleSheet.absoluteFillObject, styles.loadingContainer]}>

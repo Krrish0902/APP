@@ -1,16 +1,62 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, StatusBar } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { signUpWithEmail } from '../../src/lib/auth';
+import * as ImagePicker from 'expo-image-picker';
+import { useTheme } from '../../src/context/ThemeContext';
+import { useFonts } from 'expo-font';
 
 export default function SignUp() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { theme } = useTheme();
+
+  const headerTitleStyle = StyleSheet.create({
+    title: {
+      fontSize: 24,
+      fontFamily: 'Meddon',
+      color: theme === 'dark' ? '#FFFFFF' : '#000000',
+      textShadowColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.25)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
+      marginVertical: 16,
+    }
+  }).title;
+
+  const [fontsLoaded] = useFonts({
+    'Meddon': require('../../assets/fonts/Meddon-Regular.ttf'),
+  });
+
+  const handlePickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow access to your photo library to add a profile picture.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets[0].base64) {
+        setProfilePicture(`data:image/jpeg;base64,${result.assets[0].base64}`);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
 
   const handleSignUp = async () => {
     if (!name || !email || !password) {
@@ -20,7 +66,7 @@ export default function SignUp() {
 
     try {
       setIsLoading(true);
-      const { data, error } = await signUpWithEmail(email, password, name, phoneNumber);
+      const { data, error } = await signUpWithEmail(email, password, name, phoneNumber, profilePicture);
       
       if (error) {
         Alert.alert('Error', (error as { message?: string }).message || 'Failed to sign up');
@@ -42,189 +88,286 @@ export default function SignUp() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Image 
-            source={require('../../assets/images/signup-art.png')} 
-            style={styles.illustration}
-            resizeMode="contain"
-          />
-          <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit>Join BEHANCE</Text>
-          <Text style={styles.subtitle} numberOfLines={2}>Create your account to showcase your talent.</Text>
-        </View>
-
-        <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Full Name"
-              placeholderTextColor="#666"
-              value={name}
-              onChangeText={setName}
+    <>
+      <StatusBar 
+        barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={theme === 'dark' ? '#000000' : '#FFFFFF'}
+        translucent
+      />
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={[styles.container, { 
+          backgroundColor: theme === 'dark' ? '#000000' : '#FFFFFF',
+          paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+        }]}
+      >
+        <View style={[styles.content, {
+          backgroundColor: theme === 'dark' ? '#000000' : '#FFFFFF',
+        }]}>
+          <View style={styles.header}>
+            <Image 
+              source={require('../../assets/images/signup-art.png')} 
+              style={styles.illustration}
+              resizeMode="contain"
             />
+            <Text style={headerTitleStyle}>BEHANCE</Text> 
+            
+            <Text style={[styles.subtitle, {
+              color: theme === 'dark' ? '#999999' : '#666666'
+            }]} numberOfLines={2}>
+              Create your account to showcase your talent.
+            </Text>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#666"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Ionicons name="call-outline" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Mobile Number (Optional)"
-              placeholderTextColor="#666"
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              keyboardType="phone-pad"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#666"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons 
-                name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                size={20} 
-                color="#666" 
-              />
+          <View style={styles.form}>
+            <TouchableOpacity 
+              style={[styles.profilePictureContainer, {
+                backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : '#F5F5F5',
+                borderColor: theme === 'dark' ? 'rgba(255,255,255,0.2)' : '#E0E0E0',
+              }]} 
+              onPress={handlePickImage}
+            >
+              {profilePicture ? (
+                <Image 
+                  source={{ uri: profilePicture }} 
+                  style={styles.profilePicture} 
+                />
+              ) : (
+                <View style={styles.profilePicturePlaceholder}>
+                  <Ionicons 
+                    name="camera" 
+                    size={32} 
+                    color={theme === 'dark' ? '#999999' : '#666666'} 
+                  />
+                </View>
+              )}
             </TouchableOpacity>
-          </View>
 
-          <TouchableOpacity 
-            style={styles.signUpButton} 
-            onPress={handleSignUp}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.signUpButtonText} numberOfLines={1}>Create Account</Text>
-            )}
-          </TouchableOpacity>
+            <View style={[styles.inputContainer, {
+              backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : '#F5F5F5'
+            }]}>
+              <Ionicons 
+                name="person-outline" 
+                size={20} 
+                color={theme === 'dark' ? '#999999' : '#666666'} 
+                style={styles.inputIcon} 
+              />
+              <TextInput
+                style={[styles.input, {
+                  color: theme === 'dark' ? '#FFFFFF' : '#000000'
+                }]}
+                placeholder="Full Name"
+                placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+                value={name}
+                onChangeText={setName}
+              />
+            </View>
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText} numberOfLines={1}>Already have an account? </Text>
-            <Link href="/login" asChild>
-              <TouchableOpacity>
-                <Text style={styles.footerLink} numberOfLines={1}>Sign In</Text>
+            <View style={[styles.inputContainer, {
+              backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : '#F5F5F5'
+            }]}>
+              <Ionicons 
+                name="mail-outline" 
+                size={20} 
+                color={theme === 'dark' ? '#999999' : '#666666'} 
+                style={styles.inputIcon} 
+              />
+              <TextInput
+                style={[styles.input, {
+                  color: theme === 'dark' ? '#FFFFFF' : '#000000'
+                }]}
+                placeholder="Email"
+                placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={[styles.inputContainer, {
+              backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : '#F5F5F5'
+            }]}>
+              <Ionicons 
+                name="call-outline" 
+                size={20} 
+                color={theme === 'dark' ? '#999999' : '#666666'} 
+                style={styles.inputIcon} 
+              />
+              <TextInput
+                style={[styles.input, {
+                  color: theme === 'dark' ? '#FFFFFF' : '#000000'
+                }]}
+                placeholder="Mobile Number (Optional)"
+                placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+                keyboardType="phone-pad"
+              />
+            </View>
+
+            <View style={[styles.inputContainer, {
+              backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : '#F5F5F5'
+            }]}>
+              <Ionicons 
+                name="lock-closed-outline" 
+                size={20} 
+                color={theme === 'dark' ? '#999999' : '#666666'} 
+                style={styles.inputIcon} 
+              />
+              <TextInput
+                style={[styles.input, {
+                  color: theme === 'dark' ? '#FFFFFF' : '#000000'
+                }]}
+                placeholder="Password"
+                placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <Ionicons 
+                  name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                  size={20} 
+                  color={theme === 'dark' ? '#999999' : '#666666'} 
+                />
               </TouchableOpacity>
-            </Link>
+            </View>
+
+            <TouchableOpacity 
+              style={styles.signUpButton} 
+              onPress={handleSignUp}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.signUpButtonText} numberOfLines={1}>
+                  Create Account
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.footer}>
+              <View style={styles.footerContent}>
+                <Text style={[styles.footerText, {
+                  color: theme === 'dark' ? '#999999' : '#666666'
+                }]}>
+                  Already have an account?
+                </Text>
+                <Link href="/login" asChild>
+                  <TouchableOpacity style={styles.footerLinkContainer}>
+                    <Text style={styles.footerLink}>Sign In</Text>
+                  </TouchableOpacity>
+                </Link>
+              </View>
+            </View>
           </View>
         </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#fff',
+    padding: 30,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
-    width: '100%',
-    backgroundColor: '#fff',
+    marginBottom: 10,
   },
   illustration: {
-    width: 200,
-    height: 200,
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 8,
-    textAlign: 'center',
     width: '100%',
+    height: 200,
+    marginBottom: 0,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontFamily: 'Meddon',
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
-    marginBottom: 32,
     textAlign: 'center',
-    width: '100%',
+    marginBottom: 10,
   },
   form: {
     width: '100%',
   },
+  profilePictureContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignSelf: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profilePicture: {
+    width: '100%',
+    height: '100%',
+  },
+  profilePicturePlaceholder: {
+    alignItems: 'center',
+  },
   inputContainer: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    height: 56,
-    width: '100%',
+    borderRadius: 12,
+    marginBottom: 15,
+    paddingHorizontal: 15,
+    height: 50,
   },
   inputIcon: {
-    marginRight: 12,
+    marginRight: 10,
   },
   input: {
     flex: 1,
-    color: '#1a1a1a',
     fontSize: 16,
-    width: '100%',
+  },
+  showPasswordButton: {
+    padding: 5,
   },
   signUpButton: {
-    backgroundColor: '#0066ff',
+    backgroundColor: '#0057FF',
     borderRadius: 12,
-    height: 56,
-    alignItems: 'center',
+    height: 50,
     justifyContent: 'center',
-    marginBottom: 24,
-    width: '100%',
+    alignItems: 'center',
+    marginTop: 10,
   },
   signUpButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
     width: '100%',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  footerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 4,
   },
   footerText: {
-    color: '#666',
     fontSize: 14,
   },
+  footerLinkContainer: {
+    marginLeft: 4,
+  },
   footerLink: {
-    color: '#0066ff',
+    color: '#0057FF',
     fontSize: 14,
     fontWeight: '600',
   },
