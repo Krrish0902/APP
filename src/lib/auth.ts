@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { createArtistProfile ,  } from './artist';
+import { createArtistProfile } from './artist';
 
 // SecureStore is not available on web, so we use localStorage as a fallback
 const storeItem = async (key: string, value: string) => {
@@ -46,7 +46,6 @@ export const signUpWithEmail = async (email: string, password: string, fullName:
     // Create a profile for the user
     if (data.user) {
       const user_id = email.split('@')[0]; // Simple username generation
-
       
       // Create an artist profile for the user
       await createArtistProfile(data.user.id, {
@@ -100,21 +99,5 @@ export const getCurrentUser = async () => {
   } catch (error) {
     console.error('Error getting current user:', error);
     return { user: null, error };
-  }
-};
-
-export const getUserProfile = async (userId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
-    if (error) throw error;
-    return { profile: data, error: null };
-  } catch (error) {
-    console.error('Error getting user profile:', error);
-    return { profile: null, error };
   }
 };

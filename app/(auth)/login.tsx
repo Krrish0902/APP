@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,7 +22,7 @@ export default function Login() {
       const { data, error } = await signInWithEmail(email, password);
       
       if (error) {
-        Alert.alert('Error', error.message || 'Failed to sign in');
+        Alert.alert('Error', (error as { message?: string }).message || 'Failed to sign in');
         return;
       }
       
@@ -157,6 +157,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 10,
     zIndex: 1,
+    paddingHorizontal: 20,
   },
   subtitle: {
     fontSize: 18,
@@ -164,6 +165,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.9,
     zIndex: 1,
+    paddingHorizontal: 20,
   },
   form: {
     flex: 1,
@@ -180,6 +182,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 15,
+    minHeight: 50,
   },
   inputIcon: {
     marginRight: 10,
@@ -189,6 +192,7 @@ const styles = StyleSheet.create({
     padding: 15,
     color: '#fff',
     fontSize: 16,
+    width: '100%',
   },
   phoneButton: {
     backgroundColor: '#0066ff',
@@ -198,6 +202,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
+    minHeight: 50,
   },
   googleButton: {
     backgroundColor: '#db4437',
@@ -207,16 +212,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
+    minHeight: 50,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+    flexShrink: 1,
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    paddingVertical: 10,
   },
   dividerLine: {
     flex: 1,
@@ -226,18 +234,24 @@ const styles = StyleSheet.create({
   dividerText: {
     color: '#666',
     fontSize: 14,
+    paddingHorizontal: 10,
   },
   signupContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'center',
     gap: 5,
     marginTop: 20,
+    flexWrap: 'wrap',
+    paddingHorizontal: 20,
   },
   signupText: {
     color: '#888',
+    fontSize: 14,
   },
   signupLink: {
     color: '#0066ff',
     fontWeight: '600',
+    fontSize: 14,
   },
 });

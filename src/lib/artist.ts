@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { Tables } from './supabase';
+import { Alert } from 'react-native';
 
 export type Artist = Tables['Artist']['Row'];
 
@@ -8,7 +9,7 @@ export const getArtistByUserId = async (userId: string) => {
     const { data, error } = await supabase
       .from('Artist')
       .select('*')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .single();
 
     if (error) throw error;
@@ -58,14 +59,22 @@ export const updateArtistProfile = async (
   updates: Partial<Omit<Tables['Artist']['Update'], 'id' | 'user_id' | 'created_at'>>
 ) => {
   try {
+    console.log('Updating artist profile for userId:', userId);
+    console.log('Updates:', updates);
+
     const { data, error } = await supabase
       .from('Artist')
       .update(updates)
-      .eq('user_id', userId)
+      .eq('id', userId)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error from database:', error);
+      throw error;
+    }
+
+    console.log('Update successful, data returned:', data);
     return { artist: data, error: null };
   } catch (error) {
     console.error('Error updating artist profile:', error);

@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { updateArtistProfile } from '../../src/lib/artist';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function ProfileScreen() {
   const { user, artist, signOut, refreshArtistProfile } = useAuth();
@@ -16,12 +20,21 @@ export default function ProfileScreen() {
     phone_num: '',
   });
 
-  
+  useEffect(() => {
+    if (artist) {
+      setEditForm({
+        name: artist.name || '',
+        bio: artist.bio || '',
+        email: artist.email || '',
+        phone_num: artist.phone_num ? String(artist.phone_num) : '',
+      });
+    }
+  }, [artist]);
 
   const handleSignOut = async () => {
     try {
       await signOut();
-      router.replace('./(auth)');
+      router.replace('/(auth)/login');
     } catch (error) {
       Alert.alert('Error', 'Failed to sign out');
     }
@@ -80,24 +93,36 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profile</Text>
-        <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
-          <Ionicons name="log-out-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      <LinearGradient
+        colors={['rgba(0,0,0,0.8)', 'transparent']}
+        style={styles.headerGradient}
+      >
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Profile</Text>
+          <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
+            <Ionicons name="log-out-outline" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.profileHeader}>
-          <Image 
-            source={{ 
-              uri: 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
-            }}
-            style={styles.avatar}
-          />
+          <View style={styles.avatarContainer}>
+            <Image 
+              source={{ 
+                uri: 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
+              }}
+              style={styles.avatar}
+            />
+            <View style={styles.onlineIndicator} />
+          </View>
           
           {isEditing ? (
-            <View style={styles.editForm}>
+            <Animated.View 
+              entering={FadeInUp} 
+              exiting={FadeOutDown}
+              style={styles.editForm}
+            >
               <View style={styles.formField}>
                 <Text style={styles.formLabel}>Name</Text>
                 <TextInput
@@ -165,27 +190,50 @@ export default function ProfileScreen() {
                   )}
                 </TouchableOpacity>
               </View>
-            </View>
+            </Animated.View>
           ) : (
-            <>
-              <Text style={styles.username}>{artist.user_id}</Text>
-              <Text style={styles.fullName}>{artist?.name }</Text>
+            <Animated.View 
+              entering={FadeInUp}
+              style={styles.profileInfo}
+            >
+              <Text style={styles.username}>@{artist.user_id}</Text>
+              <Text style={styles.fullName}>{artist.name || 'No Name Set'}</Text>
               
-              {artist?.bio && (
+              {artist.bio ? (
                 <Text style={styles.bio}>{artist.bio}</Text>
+              ) : (
+                <Text style={styles.bio}>No bio added yet</Text>
               )}
 
               <View style={styles.statsContainer}>
                 <View style={styles.statItem}>
-                  <Text style={styles.statLabel}>Videos</Text>
+                  <View style={styles.statIconContainer}>
+                    <Ionicons name="mail-outline" size={24} color="#0066ff" />
+                  </View>
+                  <View style={styles.statTextContainer}>
+                    <Text style={styles.statValue}>{artist.email || 'No Email'}</Text>
+                    <Text style={styles.statLabel}>Email</Text>
+                  </View>
                 </View>
+
                 <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>0</Text>
-                  <Text style={styles.statLabel}>Followers</Text>
+                  <View style={styles.statIconContainer}>
+                    <Ionicons name="call-outline" size={24} color="#0066ff" />
+                  </View>
+                  <View style={styles.statTextContainer}>
+                    <Text style={styles.statValue}>{artist.phone_num || 'No Phone'}</Text>
+                    <Text style={styles.statLabel}>Phone</Text>
+                  </View>
                 </View>
+
                 <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>0</Text>
-                  <Text style={styles.statLabel}>Following</Text>
+                  <View style={styles.statIconContainer}>
+                    <Ionicons name="calendar-outline" size={24} color="#0066ff" />
+                  </View>
+                  <View style={styles.statTextContainer}>
+                    <Text style={styles.statValue}>{new Date(artist.created_at).toLocaleDateString()}</Text>
+                    <Text style={styles.statLabel}>Joined</Text>
+                  </View>
                 </View>
               </View>
 
@@ -193,9 +241,10 @@ export default function ProfileScreen() {
                 style={styles.editProfileButton}
                 onPress={handleEditProfile}
               >
+                <Ionicons name="create-outline" size={20} color="#0066ff" style={styles.editIcon} />
                 <Text style={styles.editProfileText}>Edit Profile</Text>
               </TouchableOpacity>
-            </>
+            </Animated.View>
           )}
         </View>
       </ScrollView>
@@ -214,6 +263,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#000',
   },
+  headerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+    zIndex: 1,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -221,185 +278,186 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#000',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
   },
   signOutButton: {
     padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
   },
   content: {
     flex: 1,
   },
   profileHeader: {
     alignItems: 'center',
-    paddingVertical: 30,
+    paddingTop: 100,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    width: '100%',
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 20,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 15,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: '#0066ff',
+  },
+  onlineIndicator: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#4CAF50',
+    borderWidth: 3,
+    borderColor: '#000',
+  },
+  profileInfo: {
+    width: '100%',
+    alignItems: 'center',
   },
   username: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#0066ff',
     marginBottom: 5,
   },
   fullName: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 10,
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
   bio: {
     fontSize: 16,
-    color: '#ccc',
+    color: '#999',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 30,
     paddingHorizontal: 20,
+    lineHeight: 24,
+    width: '100%',
   },
   statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
     width: '100%',
-    marginBottom: 20,
+    marginBottom: 30,
+    paddingHorizontal: 20,
   },
   statItem: {
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    padding: 15,
+    borderRadius: 15,
+    marginBottom: 10,
+    width: '100%',
   },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,102,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  statTextContainer: {
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#fff',
+    marginBottom: 2,
+    flexWrap: 'wrap',
   },
   statLabel: {
     fontSize: 14,
-    color: '#999',
+    color: '#666',
   },
   editProfileButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,102,255,0.1)',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
     borderWidth: 1,
     borderColor: '#0066ff',
+    marginHorizontal: 20,
+  },
+  editIcon: {
+    marginRight: 8,
   },
   editProfileText: {
     color: '#0066ff',
-    fontWeight: '600',
-  },
-  videosSection: {
-    padding: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 20,
-  },
-  videoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  videoThumbnail: {
-    width: '32%',
-    aspectRatio: 9/16,
-    marginBottom: 10,
-    position: 'relative',
-  },
-  thumbnailImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 8,
-  },
-  videoOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-  },
-  emptyStateText: {
-    color: '#666',
     fontSize: 16,
-    marginVertical: 10,
-  },
-  uploadButton: {
-    backgroundColor: '#0066ff',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    marginTop: 15,
-  },
-  uploadButtonText: {
-    color: '#fff',
     fontWeight: '600',
-  },
-  loadingIndicator: {
-    marginTop: 20,
   },
   editForm: {
     width: '100%',
-    marginTop: 10,
+    marginTop: 20,
+    paddingHorizontal: 20,
   },
   formField: {
-    marginBottom: 15,
+    marginBottom: 20,
+    width: '100%',
   },
   formLabel: {
     color: '#999',
     fontSize: 14,
-    marginBottom: 5,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   formInput: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    padding: 15,
     color: '#fff',
     fontSize: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    width: '100%',
   },
   bioInput: {
-    minHeight: 100,
+    minHeight: 120,
     textAlignVertical: 'top',
   },
   editButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
+    marginTop: 30,
+    width: '100%',
   },
   editButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 20,
     flex: 0.48,
+    paddingVertical: 15,
+    borderRadius: 25,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   saveButton: {
     backgroundColor: '#0066ff',
   },
   saveButtonText: {
     color: '#fff',
+    fontSize: 16,
     fontWeight: '600',
   },
   cancelButton: {
-    backgroundColor: '#333',
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   cancelButtonText: {
     color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

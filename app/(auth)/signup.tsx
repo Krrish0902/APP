@@ -29,7 +29,7 @@ export default function SignUp() {
       const { data, error } = await signUpWithEmail(email, password, name, phoneNumber);
       
       if (error) {
-        Alert.alert('Error', error.message || 'Failed to sign up');
+        Alert.alert('Error', (error as { message?: string }).message || 'Failed to sign up');
         return;
       }
       
@@ -185,6 +185,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 10,
     zIndex: 1,
+    paddingHorizontal: 20,
   },
   subtitle: {
     fontSize: 18,
@@ -192,6 +193,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.9,
     zIndex: 1,
+    paddingHorizontal: 20,
   },
   form: {
     flex: 1,
@@ -208,6 +210,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 15,
+    minHeight: 50,
   },
   inputIcon: {
     marginRight: 10,
@@ -217,6 +220,7 @@ const styles = StyleSheet.create({
     padding: 15,
     color: '#fff',
     fontSize: 16,
+    width: '100%',
   },
   signupButton: {
     backgroundColor: '#0066ff',
@@ -224,23 +228,30 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 50,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+    flexShrink: 1,
   },
   loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'center',
     gap: 5,
     marginTop: 20,
+    flexWrap: 'wrap',
+    paddingHorizontal: 20,
   },
   loginText: {
     color: '#888',
+    fontSize: 14,
   },
   loginLink: {
     color: '#0066ff',
     fontWeight: '600',
+    fontSize: 14,
   },
 });
