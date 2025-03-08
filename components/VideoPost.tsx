@@ -10,7 +10,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 interface Artist {
   id: string;
   name: string;
-  avatar: any;
+  avatar: string;
 }
 
 interface VideoPostProps {
@@ -174,16 +174,17 @@ export default function VideoPost({
         </View>
       </TouchableWithoutFeedback>
        
-      <View style={styles.profilePhotoContainer}>
-        <Link href={`/artist/${video.artist.id}`} asChild>
+      <Link href={`/artist/${video.artist.id}`} asChild>
+        <View style={styles.profilePhotoContainer}>
           <View style={styles.artistContainer}>
             <Image
-              source={video.artist.avatar}
+              source={{ uri: video.artist.avatar }}
               style={styles.avatar}
+              defaultSource={require('../assets/images/default-avatar.png')}
             />
           </View>
-        </Link>
-      </View>
+        </View>
+      </Link>
     </View>
   );
 }
@@ -225,6 +226,14 @@ const styles = StyleSheet.create({
   },
   artistContainer: {
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   avatar: {
     width: 70,

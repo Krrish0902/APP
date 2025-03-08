@@ -218,7 +218,7 @@ export default function SearchScreen() {
     artistCard: {
       flexDirection: 'row',
       backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
-      borderRadius: 16,
+      borderRadius: 50,
       marginBottom: 15,
       overflow: 'hidden',
       shadowColor: theme === 'dark' ? '#000000' : '#000000',
@@ -234,7 +234,7 @@ export default function SearchScreen() {
     artistImage: {
       width: 90,
       height: 90,
-      borderRadius: 12,
+      borderRadius: 45,
       margin: 10,
     },
     artistInfo: {

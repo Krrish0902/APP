@@ -1,5 +1,5 @@
 // HomeScreen.tsx
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, Dimensions, StatusBar, ViewToken, ListRenderItemInfo, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { FlatList } from 'react-native-gesture-handler';
@@ -7,12 +7,25 @@ import VideoPost from '../../components/VideoPost';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
+import { useRouter } from 'expo-router'; 
+import { supabase } from '../../src/lib/supabase';
 
 // Get screen dimensions and add extra padding to ensure proper spacing
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+const router = useRouter();
 
 // Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
+
+interface Artist {
+  id: string;
+  name: string;
+  profile_picture_url: string | null;
+}
+
+const navigateToArtist = (artist: Artist) => {
+  router.push(`/artist/${artist.id}`);
+};
 
 // Remove the fixed TAB_BAR_HEIGHT and calculate content height dynamically
 const getContentHeight = (insets: { top: number; bottom: number }) => {
@@ -24,13 +37,24 @@ interface ViewableItemsChanged {
   changed: ViewToken[];
 }
 
-interface Video {
+interface PostData {
   id: string;
-  url: any;
+  file_path: string;
+  created_at: string;
   artist: {
     id: string;
     name: string;
-    avatar: any;
+    profile_picture_url: string | null;
+  };
+}
+
+interface Video {
+  id: string;
+  url: string;
+  artist: {
+    id: string;
+    name: string;
+    avatar: string;
   };
 }
 
@@ -44,6 +68,8 @@ export default function HomeScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(true);
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const CONTENT_HEIGHT = getContentHeight(insets);
 
@@ -51,27 +77,60 @@ export default function HomeScreen() {
     setIsMuted(prev => !prev);
   }, []);
 
-  const videos = [
-    {
-      id: '1',
-      url: require('../../assets/videos/sample_1.mp4'),
-      artist: {
-        id: '1',
-        name: 'John Doe',
-        avatar: require('../../assets/images/image.png'),
-      },
-    },
-    {
-      id: '2',
-      url: require('../../assets/videos/sample_2.mp4'),
-      artist: {
-        id: '2',
-        name: 'Jane Doe',
-        avatar: require('../../assets/images/icon.png'),
-      },
-    },
-    // Add more videos if needed
-  ];
+  // Fetch videos from the posts table
+  const fetchVideos = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('posts')
+        .select(`
+          id,
+          file_path,
+          created_at,
+          artist:artist_id (
+            id,
+            name,
+            profile_picture_url
+          )
+        `)
+        .eq('media_type', 'video')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Transform the data into the required format
+      const formattedVideos = (data || []).map(post => {
+        const artist = post.artist as unknown as { 
+          id: string; 
+          name: string; 
+          profile_picture_url: string | null;
+        };
+        
+        const publicUrl = supabase.storage.from('artist-media').getPublicUrl(post.file_path).data.publicUrl;
+        
+        return {
+          id: post.id,
+          url: publicUrl,
+          artist: {
+            id: artist.id,
+            name: artist.name,
+            avatar: artist.profile_picture_url || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
+          }
+        };
+      });
+
+      setVideos(formattedVideos);
+    } catch (error) {
+      console.error('Error fetching videos:', error);
+      setError('Failed to load videos');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVideos();
+  }, []);
 
   // Enhanced viewability configuration for better performance
   const viewabilityConfig = React.useRef({
@@ -84,15 +143,8 @@ export default function HomeScreen() {
     if (viewableItems.length > 0) {
       const newIndex = viewableItems[0].index ?? 0;
       setCurrentIndex(newIndex);
-      
-      // Preload the next video if available
-      const nextIndex = newIndex + 1;
-      if (nextIndex < videos.length) {
-        // You could implement video preloading here if needed
-        console.log(`Preloading video ${nextIndex}`);
-      }
     }
-  }, [videos.length]);
+  }, []);
 
   const handleVideoError = useCallback((videoId: string, error: string) => {
     console.error(`Error playing video ${videoId}:`, error);
@@ -108,7 +160,10 @@ export default function HomeScreen() {
   const renderItem = useCallback(({ item, index }: ListRenderItemInfo<Video>) => (
     <View style={styles.videoContainer}>
       <VideoPost
-        video={item}
+        video={{
+          ...item,
+          url: { uri: item.url }  // Convert string URL to object format for Video component
+        }}
         onDoubleTap={() => {
           console.log('Double tap detected');
         }}
@@ -128,6 +183,22 @@ export default function HomeScreen() {
 
   if (!fontsLoaded) {
     return null;
+  }
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <Text style={styles.loadingText}>Loading videos...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.errorContainer]}>
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
   }
 
   return (
@@ -193,5 +264,21 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 5,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+  },
+  errorContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#FF0000',
+    fontSize: 16,
   },
 });

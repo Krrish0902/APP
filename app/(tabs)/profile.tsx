@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Dimensions, Switch } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Dimensions, Switch, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
@@ -9,6 +9,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated';
 import { useTheme } from '../../src/context/ThemeContext';
 import * as ImagePicker from 'expo-image-picker';
+import { Video, ResizeMode } from 'expo-av';
+import { supabase } from '../../src/lib/supabase';
+import { decode } from 'base64-arraybuffer';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -19,6 +22,8 @@ export default function ProfileScreen() {
   const { theme, toggleTheme, isDarkMode } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [showContact, setShowContact] = useState(false);
+  const [videos, setVideos] = useState<Array<{ id: string; file_path: string; created_at: string }>>([]);
   const [editForm, setEditForm] = useState({
     name: '',
     bio: '',
@@ -188,7 +193,9 @@ export default function ProfileScreen() {
       borderRadius: 25,
       borderWidth: 1,
       borderColor: '#0066ff',
-      marginHorizontal: 20,
+      flex: 1,
+      justifyContent: 'center',
+      marginLeft: 8,
     },
     editIcon: {
       marginRight: 8,
@@ -263,16 +270,132 @@ export default function ProfileScreen() {
       flexDirection: 'row',
       alignItems: 'center',
       zIndex: 2,
-      backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)',
       paddingHorizontal: 8,
       paddingVertical: 4,
-      borderRadius: 20,
     },
     themeToggleText: {
       color: theme === 'dark' ? '#FFFFFF' : '#000000',
       marginRight: 8,
       fontSize: 12,
       fontWeight: '600',
+    },
+    contactButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0,102,255,0.1)',
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 25,
+      borderWidth: 1,
+      borderColor: '#0066ff',
+      flex: 1,
+      justifyContent: 'center',
+      marginRight: 8,
+    },
+    contactButtonText: {
+      color: '#0066ff',
+      fontSize: 16,
+      fontWeight: '600',
+      marginLeft: 8,
+    },
+    buttonContainer: {
+      flexDirection: 'row',
+      paddingHorizontal: 20,
+      marginBottom: 15,
+      width: '100%',
+    },
+    contactInfo: {
+      width: '100%',
+      paddingHorizontal: 20,
+      marginBottom: 20,
+    },
+    contactItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+      padding: 15,
+      borderRadius: 15,
+      marginBottom: 10,
+    },
+    contactIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(0,102,255,0.1)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 15,
+    },
+    contactText: {
+      fontSize: 16,
+      color: theme === 'dark' ? '#FFFFFF' : '#000000',
+      flex: 1,
+    },
+    contactLabel: {
+      fontSize: 12,
+      color: theme === 'dark' ? '#999999' : '#666666',
+      marginTop: 2,
+    },
+    videoSection: {
+      marginTop: 20,
+      paddingHorizontal: 20,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+    },
+    uploadButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0,102,255,0.1)',
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: 20,
+    },
+    uploadButtonText: {
+      color: '#0066ff',
+      marginLeft: 5,
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    videoList: {
+      marginHorizontal: -20,
+      paddingHorizontal: 20,
+    },
+    videoCard: {
+      marginRight: 12,
+      borderRadius: 12,
+      overflow: 'hidden',
+      backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+      width: 180,
+    },
+    videoThumbnail: {
+      width: '100%',
+      height: 240,
+      borderRadius: 12,
+    },
+    videoDate: {
+      fontSize: 12,
+      padding: 8,
+      paddingTop: 4,
+      backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.9)',
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      borderBottomLeftRadius: 12,
+      borderBottomRightRadius: 12,
+    },
+    noVideosText: {
+      textAlign: 'center',
+      marginTop: 20,
+      fontSize: 14,
     },
   });
 
@@ -284,8 +407,145 @@ export default function ProfileScreen() {
         email: artist.email || '',
         phone_num: artist.phone_num ? String(artist.phone_num) : '',
       });
+      fetchUserVideos();
     }
   }, [artist]);
+
+  const fetchUserVideos = async () => {
+    if (!artist) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('id, file_path, created_at')
+        .eq('artist_id', artist.id)
+        .eq('media_type', 'video')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setVideos(data || []);
+    } catch (error) {
+      console.error('Error fetching videos:', error);
+    }
+  };
+
+  const handleUploadVideo = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow access to your media library to upload videos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'videos',
+        allowsEditing: true,
+        quality: 1,
+        videoMaxDuration: 300,
+      });
+
+      if (result.canceled) return;
+
+      setIsLoading(true);
+      const videoUri = result.assets[0].uri;
+      console.log('Original video URI:', videoUri);
+
+      // Get file extension and prepare upload path
+      const fileExt = videoUri.split('.').pop()?.toLowerCase() || 'mp4';
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `videos/${artist?.id}/${fileName}`;
+      console.log('File path:', filePath);
+
+      let uploadSuccess = false;
+      let uploadAttempt = 0;
+      const maxAttempts = 3;
+
+      while (uploadAttempt < maxAttempts && !uploadSuccess) {
+        try {
+          uploadAttempt++;
+          console.log(`Starting upload attempt ${uploadAttempt}`);
+
+          // Create form data
+          const formData = new FormData();
+          formData.append('file', {
+            uri: videoUri,
+            type: `video/${fileExt}`,
+            name: fileName,
+          } as any);
+
+          // Get the presigned URL for upload
+          const { data: urlData, error: urlError } = await supabase.storage
+            .from('artist-media')
+            .createSignedUploadUrl(filePath);
+
+          if (urlError || !urlData) {
+            console.error('Error getting upload URL:', urlError);
+            throw urlError || new Error('Failed to get upload URL');
+          }
+
+          // Upload to the presigned URL
+          const uploadResponse = await fetch(urlData.signedUrl, {
+            method: 'PUT',
+            body: formData,
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              'Authorization': `Bearer ${urlData.token}`,
+            },
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error(`Upload failed with status ${uploadResponse.status}`);
+          }
+
+          console.log('Upload successful');
+          uploadSuccess = true;
+
+          // Create post record
+          const { error: postError } = await supabase
+            .from('posts')
+            .insert({
+              artist_id: artist?.id,
+              file_path: filePath,
+              media_type: 'video'
+            });
+
+          if (postError) {
+            console.error('Post creation error:', postError);
+            // Cleanup uploaded file
+            await supabase.storage
+              .from('artist-media')
+              .remove([filePath]);
+            throw postError;
+          }
+
+          Alert.alert('Success', 'Video uploaded successfully!');
+          await fetchUserVideos();
+          break;
+
+        } catch (uploadError: unknown) {
+          console.error(`Upload attempt ${uploadAttempt} failed:`, uploadError);
+          
+          if (uploadAttempt === maxAttempts) {
+            const errorMessage = uploadError instanceof Error ? uploadError.message : 'Unknown error occurred';
+            throw new Error(`Upload failed after ${maxAttempts} attempts: ${errorMessage}`);
+          }
+          
+          // Wait before retry with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, uploadAttempt) * 1000));
+        }
+      }
+
+    } catch (error: unknown) {
+      console.error('Final error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      Alert.alert(
+        'Upload Failed',
+        `Error: ${errorMessage}. Please try again.`
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -350,7 +610,7 @@ export default function ProfileScreen() {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.5,
@@ -424,6 +684,80 @@ export default function ProfileScreen() {
     }
   };
 
+  const renderVideoSection = () => (
+    <View style={styles.videoSection}>
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
+          My Videos
+        </Text>
+        <TouchableOpacity 
+          style={styles.uploadButton}
+          onPress={handleUploadVideo}
+          disabled={isLoading}
+        >
+          <Ionicons name="cloud-upload-outline" size={24} color="#0066ff" />
+          <Text style={styles.uploadButtonText}>Upload Video</Text>
+        </TouchableOpacity>
+      </View>
+
+      {videos.length > 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.videoList}>
+          {videos.map((video) => (
+            <View key={video.id} style={styles.videoCard}>
+              <View style={{ position: 'relative' }}>
+                <Video
+                  source={{ uri: supabase.storage.from('artist-media').getPublicUrl(video.file_path).data.publicUrl }}
+                  style={styles.videoThumbnail}
+                  resizeMode={ResizeMode.COVER}
+                  useNativeControls
+                  isLooping
+                />
+                <Text style={[styles.videoDate, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
+                  {new Date(video.created_at).toLocaleDateString()}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      ) : (
+        <Text style={[styles.noVideosText, { color: theme === 'dark' ? '#999999' : '#666666' }]}>
+          No videos uploaded yet
+        </Text>
+      )}
+    </View>
+  );
+
+  const renderContactInfo = () => {
+    if (!showContact) return null;
+
+    return (
+      <Animated.View 
+        entering={FadeInUp}
+        style={styles.contactInfo}
+      >
+        <TouchableOpacity style={styles.contactItem} onPress={() => {}}>
+          <View style={styles.contactIcon}>
+            <Ionicons name="mail-outline" size={24} color="#0066ff" />
+          </View>
+          <View>
+            <Text style={styles.contactText}>{artist?.email || 'No Email'}</Text>
+            <Text style={styles.contactLabel}>Email</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.contactItem} onPress={() => {}}>
+          <View style={styles.contactIcon}>
+            <Ionicons name="call-outline" size={24} color="#0066ff" />
+          </View>
+          <View>
+            <Text style={styles.contactText}>{artist?.phone_num || 'No Phone'}</Text>
+            <Text style={styles.contactLabel}>Phone</Text>
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  };
+
   if (!artist) {
     return (
       <View style={styles.loadingContainer}>
@@ -441,7 +775,6 @@ export default function ProfileScreen() {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Profile</Text>
           <View style={styles.themeToggleContainer}>
-            <Text style={styles.themeToggleText}>{isDarkMode ? 'Dark' : 'Light'}</Text>
             <Switch
               value={isDarkMode}
               onValueChange={toggleTheme}
@@ -470,9 +803,6 @@ export default function ProfileScreen() {
               style={styles.avatar}
             />
             <View style={styles.onlineIndicator} />
-            <View style={styles.editOverlay}>
-              <Ionicons name="camera" size={24} color="#fff" />
-            </View>
           </TouchableOpacity>
           
           {isEditing ? (
@@ -565,48 +895,34 @@ export default function ProfileScreen() {
                 <Text style={styles.bio}>No bio added yet</Text>
               )}
 
-              <View style={styles.statsContainer}>
-                <View style={styles.statItem}>
-                  <View style={styles.statIconContainer}>
-                    <Ionicons name="mail-outline" size={24} color="#0066ff" />
-                  </View>
-                  <View style={styles.statTextContainer}>
-                    <Text style={styles.statValue}>{artist.email || 'No Email'}</Text>
-                    <Text style={styles.statLabel}>Email</Text>
-                  </View>
-                </View>
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity 
+                  style={styles.contactButton}
+                  onPress={() => setShowContact(!showContact)}
+                >
+                  <Ionicons 
+                    name={showContact ? "chevron-up-outline" : "chevron-down-outline"} 
+                    size={20} 
+                    color="#0066ff" 
+                  />
+                  <Text style={styles.contactButtonText}>Contact Info</Text>
+                </TouchableOpacity>
 
-                <View style={styles.statItem}>
-                  <View style={styles.statIconContainer}>
-                    <Ionicons name="call-outline" size={24} color="#0066ff" />
-                  </View>
-                  <View style={styles.statTextContainer}>
-                    <Text style={styles.statValue}>{artist.phone_num || 'No Phone'}</Text>
-                    <Text style={styles.statLabel}>Phone</Text>
-                  </View>
-                </View>
-
-                <View style={styles.statItem}>
-                  <View style={styles.statIconContainer}>
-                    <Ionicons name="calendar-outline" size={24} color="#0066ff" />
-                  </View>
-                  <View style={styles.statTextContainer}>
-                    <Text style={styles.statValue}>{new Date(artist.created_at).toLocaleDateString()}</Text>
-                    <Text style={styles.statLabel}>Joined</Text>
-                  </View>
-                </View>
+                <TouchableOpacity 
+                  style={styles.editProfileButton}
+                  onPress={handleEditProfile}
+                >
+                  <Ionicons name="create-outline" size={20} color="#0066ff" style={styles.editIcon} />
+                  <Text style={styles.editProfileText}>Edit Profile</Text>
+                </TouchableOpacity>
               </View>
 
-              <TouchableOpacity 
-                style={styles.editProfileButton}
-                onPress={handleEditProfile}
-              >
-                <Ionicons name="create-outline" size={20} color="#0066ff" style={styles.editIcon} />
-                <Text style={styles.editProfileText}>Edit Profile</Text>
-              </TouchableOpacity>
+              {renderContactInfo()}
             </Animated.View>
           )}
         </View>
+        
+        {renderVideoSection()}
       </ScrollView>
     </View>
   );
