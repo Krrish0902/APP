@@ -3,23 +3,21 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, KeyboardAvo
 import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { signInWithEmail } from '../../src/lib/auth';
-import { useTheme } from '../../src/context/ThemeContext';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { theme } = useTheme();
 
   const titleStyle = StyleSheet.create({
     title: {
       fontSize: 32,
       fontWeight: '600',
-      color: theme === 'dark' ? '#FFFFFF' : '#000000',
+      color: '#000000',
       marginBottom: 8,
       textAlign: 'center',
-      textShadowColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.25)',
+      textShadowColor: 'rgba(0, 0, 0, 0.25)',
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 2,
     }
@@ -58,19 +56,19 @@ export default function Login() {
   return (
     <>
       <StatusBar 
-        barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
-        backgroundColor={theme === 'dark' ? '#000000' : '#FFFFFF'}
+        barStyle={'dark-content'}
+        backgroundColor={'#FFFFFF'}
         translucent
       />
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={[styles.container, { 
-          backgroundColor: theme === 'dark' ? '#000000' : '#FFFFFF',
+          backgroundColor:  '#FFFFFF',
           paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
         }]}
       >
         <View style={[styles.content, {
-          backgroundColor: theme === 'dark' ? '#000000' : '#FFFFFF',
+          backgroundColor:  '#FFFFFF',
         }]}>
           <View style={styles.header}>
             <Image 
@@ -81,20 +79,20 @@ export default function Login() {
             <Text style={titleStyle} numberOfLines={1} adjustsFontSizeToFit>
               Welcome Back
             </Text>
-            <Text style={[styles.subtitle, { color: theme === 'dark' ? '#999999' : '#666666' }]} numberOfLines={2}>
+            <Text style={[styles.subtitle, { color: '#666666' }]} numberOfLines={2}>
               Please sign in to continue.
             </Text>
           </View>
 
           <View style={styles.form}>
             <View style={[styles.inputContainer, { 
-              backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : '#F5F5F5'
+              backgroundColor:  '#F5F5F5'
             }]}>
-              <Ionicons name="mail-outline" size={20} color={theme === 'dark' ? '#999999' : '#666666'} style={styles.inputIcon} />
+              <Ionicons name="mail-outline" size={20} color={'#666666'} style={styles.inputIcon} />
               <TextInput
-                style={[styles.input, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}
+                style={[styles.input, { color: '#000000' }]}
                 placeholder="Email"
-                placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+                placeholderTextColor={'#999999'}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -103,13 +101,13 @@ export default function Login() {
             </View>
 
             <View style={[styles.inputContainer, { 
-              backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : '#F5F5F5'
+              backgroundColor:  '#F5F5F5'
             }]}>
-              <Ionicons name="lock-closed-outline" size={20} color={theme === 'dark' ? '#999999' : '#666666'} style={styles.inputIcon} />
+              <Ionicons name="lock-closed-outline" size={20} color={'#666666'} style={styles.inputIcon} />
               <TextInput
-                style={[styles.input, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}
+                style={[styles.input, { color:  '#000000' }]}
                 placeholder="Password"
-                placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+                placeholderTextColor={'#999999'}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -119,7 +117,7 @@ export default function Login() {
                 <Ionicons 
                   name={showPassword ? "eye-off-outline" : "eye-outline"} 
                   size={20} 
-                  color={theme === 'dark' ? '#999999' : '#666666'} 
+                  color={'#666666'} 
                 />
               </TouchableOpacity>
             </View>
@@ -137,7 +135,7 @@ export default function Login() {
             </TouchableOpacity>
 
             <View style={styles.footer}>
-              <Text style={[styles.footerText, { color: theme === 'dark' ? '#999999' : '#666666' }]} numberOfLines={1}>
+              <Text style={[styles.footerText, { color:  '#666666' }]} numberOfLines={1}>
                 Don't have an account?{' '}
               </Text>
               <Link href="/signup" asChild>

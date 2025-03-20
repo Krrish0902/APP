@@ -367,6 +367,7 @@ export default function ProfileScreen() {
     videoList: {
       marginHorizontal: -20,
       paddingHorizontal: 20,
+      marginBottom: 30,
     },
     videoCard: {
       marginRight: 12,
@@ -701,7 +702,7 @@ export default function ProfileScreen() {
       </View>
 
       {videos.length > 0 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.videoList}>
+        <ScrollView showsVerticalScrollIndicator={false} style={styles.videoList}>
           {videos.map((video) => (
             <View key={video.id} style={styles.videoCard}>
               <View style={{ position: 'relative' }}>

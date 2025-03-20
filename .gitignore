@@ -36,3 +36,5 @@ yarn-error.*
 .bolt/
 .env
 assets/
+
+errors.txt

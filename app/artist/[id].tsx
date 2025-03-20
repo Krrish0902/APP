@@ -6,6 +6,7 @@ import { useTheme } from '../../src/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp } from 'react-native-reanimated';
+import { Video, ResizeMode } from 'expo-av';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -20,7 +21,7 @@ interface Artist {
   user_id: string;
 }
 
-interface Video {
+interface video {
   id: string;
   file_path: string;
   created_at: string;
@@ -29,7 +30,7 @@ interface Video {
 export default function ArtistProfileScreen() {
   const { id } = useLocalSearchParams();
   const [artist, setArtist] = useState<Artist | null>(null);
-  const [videos, setVideos] = useState<Video[]>([]);
+  const [videos, setVideos] = useState<video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showContact, setShowContact] = useState(false);
@@ -115,7 +116,7 @@ export default function ArtistProfileScreen() {
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={true}>
         <View style={styles.profileHeader}>
           <TouchableOpacity style={styles.avatarContainer}>
             <Image 
@@ -192,24 +193,38 @@ export default function ArtistProfileScreen() {
           </Animated.View>
         </View>
 
-        {/* Render Videos Section */}
         <View style={styles.videoSection}>
-          <Text style={styles.sectionTitle}>Videos</Text>
-          {videos.length > 0 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {videos.map(video => (
-                <View key={video.id} style={styles.videoCard}>
-                  <Image
-                    source={{ uri: supabase.storage.from('artist-media').getPublicUrl(video.file_path).data.publicUrl }}
-                    style={styles.videoThumbnail}
-                  />
-                </View>
-              ))}
-            </ScrollView>
-          ) : (
-            <Text style={styles.noVideosText}>No videos uploaded yet</Text>
-          )}
-        </View>
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
+          My Videos
+        </Text>
+      </View>
+
+      {videos.length > 0 ? (
+        <ScrollView showsVerticalScrollIndicator={false} style={styles.videoList}>
+          {videos.map((video) => (
+            <View key={video.id} style={styles.videoCard}>
+              <View style={{ position: 'relative' }}>
+                <Video
+                  source={{ uri: supabase.storage.from('artist-media').getPublicUrl(video.file_path).data.publicUrl }}
+                  style={styles.videoThumbnail}
+                  resizeMode={ResizeMode.COVER}
+                  useNativeControls
+                  isLooping
+                />
+                <Text style={[styles.videoDate, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
+                  {new Date(video.created_at).toLocaleDateString()}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      ) : (
+        <Text style={[styles.noVideosText, { color: theme === 'dark' ? '#999999' : '#666666' }]}>
+          No videos uploaded yet
+        </Text>
+      )}
+    </View>
       </ScrollView>
     </View>
   );
@@ -369,10 +384,15 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 20,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 10,
   },
   videoCard: {
     marginRight: 12,
@@ -383,12 +403,34 @@ const styles = StyleSheet.create({
   },
   videoThumbnail: {
     width: '100%',
-    height: 100,
+    height: 240,
     borderRadius: 12,
+  },
+  videoDate: {
+    fontSize: 12,
+    padding: 8,
+    paddingTop: 4,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+  },
+  videoList: {
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
   },
   noVideosText: {
     textAlign: 'center',
     marginTop: 20,
     fontSize: 14,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#ff0000',
+    textAlign: 'center',
+    marginTop: 20,
   },
 }); 
