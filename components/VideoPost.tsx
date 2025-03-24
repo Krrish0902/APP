@@ -1,11 +1,13 @@
 // VideoPost.tsx
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { View, StyleSheet, Image, Dimensions, TouchableWithoutFeedback, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Image, Dimensions, TouchableWithoutFeedback,TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Link } from 'expo-router';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router'; 
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const router = useRouter();
 
 interface Artist {
   id: string;
@@ -66,6 +68,10 @@ export default function VideoPost({
   const handleError = (error: string) => {
     setIsLoading(false);
     onErrorProp?.(error);
+  };
+
+  const navigateToArtist = (artist: Artist) => {
+    router.push(`/artist/${artist.id}`);
   };
 
   // Handle video status updates
@@ -173,18 +179,6 @@ export default function VideoPost({
           )}
         </View>
       </TouchableWithoutFeedback>
-       
-      <Link href={`/artist/${video.artist.id}`} asChild>
-        <View style={styles.profilePhotoContainer}>
-          <View style={styles.artistContainer}>
-            <Image
-              source={{ uri: video.artist.avatar }}
-              style={styles.avatar}
-              defaultSource={require('../assets/images/default-avatar.png')}
-            />
-          </View>
-        </View>
-      </Link>
     </View>
   );
 }
@@ -216,31 +210,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     borderRadius: 20,
-  },
-  profilePhotoContainer: {
-    position: 'absolute',
-    bottom: '20%',
-    alignSelf: 'center',
-    alignItems: 'center',
-    zIndex: 2,
-  },
-  artistContainer: {
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    borderWidth: 2,
-    borderColor: '#fff',
   },
   loadingContainer: {
     ...StyleSheet.absoluteFillObject,

@@ -1,6 +1,6 @@
 // HomeScreen.tsx
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions, StatusBar, ViewToken, ListRenderItemInfo, Platform } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, StatusBar, ViewToken, ListRenderItemInfo, Platform, TouchableOpacity, Image } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { FlatList } from 'react-native-gesture-handler';
 import VideoPost from '../../components/VideoPost';
@@ -9,6 +9,7 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useRouter } from 'expo-router'; 
 import { supabase } from '../../src/lib/supabase';
+import { Ionicons } from '@expo/vector-icons';
 
 // Get screen dimensions and add extra padding to ensure proper spacing
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -23,9 +24,6 @@ interface Artist {
   profile_picture_url: string | null;
 }
 
-const navigateToArtist = (artist: Artist) => {
-  router.push(`/artist/${artist.id}`);
-};
 
 // Remove the fixed TAB_BAR_HEIGHT and calculate content height dynamically
 const getContentHeight = (insets: { top: number; bottom: number }) => {
@@ -98,7 +96,6 @@ export default function HomeScreen() {
 
       if (error) throw error;
 
-      // Transform the data into the required format
       const formattedVideos = (data || []).map(post => {
         const artist = post.artist as unknown as { 
           id: string; 
@@ -172,6 +169,13 @@ export default function HomeScreen() {
         isMuted={isMuted}
         onToggleMute={handleToggleMute}
       />
+      <TouchableOpacity onPress={() => router.push(`/artist/${item.artist.id}`)} style={styles.profilePhotoContainer}>
+        <Image
+          source={{ uri: item.artist.avatar }}
+          style={styles.avatar}
+          defaultSource={require('../../assets/images/default-avatar.png')}
+        />
+      </TouchableOpacity>
     </View>
   ), [currentIndex, handleVideoError, isMuted, handleToggleMute]);
 
@@ -280,5 +284,19 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#FF0000',
     fontSize: 16,
+  },
+  profilePhotoContainer: {
+    position: 'absolute',
+    bottom: '20%',
+    alignSelf: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  avatar: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 2,
+    borderColor: '#fff',
   },
 });
