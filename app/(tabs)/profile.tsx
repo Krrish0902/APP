@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Dimensions, Switch, Platform } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Dimensions, Switch, Platform, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
@@ -398,6 +398,9 @@ export default function ProfileScreen() {
       marginTop: 20,
       fontSize: 14,
     },
+    columnWrapper: {
+      justifyContent: 'space-between',
+    },
   });
 
   useEffect(() => {
@@ -702,24 +705,28 @@ export default function ProfileScreen() {
       </View>
 
       {videos.length > 0 ? (
-        <ScrollView showsVerticalScrollIndicator={false} style={styles.videoList}>
-          {videos.map((video) => (
-            <View key={video.id} style={styles.videoCard}>
+        <FlatList
+          data={videos}
+          renderItem={({ item }) => (
+            <View style={styles.videoCard}>
               <View style={{ position: 'relative' }}>
                 <Video
-                  source={{ uri: supabase.storage.from('artist-media').getPublicUrl(video.file_path).data.publicUrl }}
+                  source={{ uri: supabase.storage.from('artist-media').getPublicUrl(item.file_path).data.publicUrl }}
                   style={styles.videoThumbnail}
                   resizeMode={ResizeMode.COVER}
                   useNativeControls
                   isLooping
                 />
                 <Text style={[styles.videoDate, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
-                  {new Date(video.created_at).toLocaleDateString()}
+                  {new Date(item.created_at).toLocaleDateString()}
                 </Text>
               </View>
             </View>
-          ))}
-        </ScrollView>
+          )}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          columnWrapperStyle={styles.columnWrapper}
+        />
       ) : (
         <Text style={[styles.noVideosText, { color: theme === 'dark' ? '#999999' : '#666666' }]}>
           No videos uploaded yet
@@ -789,142 +796,151 @@ export default function ProfileScreen() {
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.profileHeader}>
-          <TouchableOpacity 
-            style={styles.avatarContainer}
-            onPress={handleUpdateProfilePicture}
-            onLongPress={handleLongPressAvatar}
-            delayLongPress={500}
-          >
-            <Image 
-              source={{ 
-                uri: (artist as any).profile_picture_url || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
-              }}
-              style={styles.avatar}
-            />
-            <View style={styles.onlineIndicator} />
-          </TouchableOpacity>
-          
-          {isEditing ? (
-            <Animated.View 
-              entering={FadeInUp} 
-              exiting={FadeOutDown}
-              style={styles.editForm}
-            >
-              <View style={styles.formField}>
-                <Text style={styles.formLabel}>Name</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={editForm.name}
-                  onChangeText={(text) => setEditForm({...editForm, name: text})}
-                  placeholder="Your name"
-                  placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
-                />
-              </View>
-              
-              <View style={styles.formField}>
-                <Text style={styles.formLabel}>Email</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={editForm.email}
-                  onChangeText={(text) => setEditForm({...editForm, email: text})}
-                  placeholder="Your email"
-                  placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
-                  keyboardType="email-address"
-                />
-              </View>
-              
-              <View style={styles.formField}>
-                <Text style={styles.formLabel}>Phone</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={editForm.phone_num}
-                  onChangeText={(text) => setEditForm({...editForm, phone_num: text})}
-                  placeholder="Your phone number"
-                  placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
-                  keyboardType="phone-pad"
-                />
-              </View>
-              
-              <View style={styles.formField}>
-                <Text style={styles.formLabel}>Bio</Text>
-                <TextInput
-                  style={[styles.formInput, styles.bioInput]}
-                  value={editForm.bio}
-                  onChangeText={(text) => setEditForm({...editForm, bio: text})}
-                  placeholder="Tell us about yourself"
-                  placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
-                  multiline
-                />
-              </View>
-              
-              <View style={styles.editButtons}>
+      <FlatList
+        data={[{ key: 'profile' }, { key: 'videos' }]} // Use a data array to differentiate sections
+        renderItem={({ item }) => {
+          if (item.key === 'profile') {
+            return (
+              <View style={styles.profileHeader}>
                 <TouchableOpacity 
-                  style={[styles.editButton, styles.cancelButton]} 
-                  onPress={handleCancelEdit}
+                  style={styles.avatarContainer}
+                  onPress={handleUpdateProfilePicture}
+                  onLongPress={handleLongPressAvatar}
+                  delayLongPress={500}
                 >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <Image 
+                    source={{ 
+                      uri: (artist as any).profile_picture_url || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
+                    }}
+                    style={styles.avatar}
+                  />
+                  <View style={styles.onlineIndicator} />
                 </TouchableOpacity>
                 
-                <TouchableOpacity 
-                  style={[styles.editButton, styles.saveButton]} 
-                  onPress={handleSaveProfile}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.saveButtonText}>Save</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </Animated.View>
-          ) : (
-            <Animated.View 
-              entering={FadeInUp}
-              style={styles.profileInfo}
-            >
-              <View style={styles.usernameContainer}>
-                <Text style={styles.username} numberOfLines={1}>@{artist.user_id}</Text>
-              </View>
-              <Text style={styles.fullName}>{artist.name || 'No Name Set'}</Text>
-              
-              {artist.bio ? (
-                <Text style={styles.bio}>{artist.bio}</Text>
-              ) : (
-                <Text style={styles.bio}>No bio added yet</Text>
-              )}
+                {isEditing ? (
+                  <Animated.View 
+                    entering={FadeInUp} 
+                    exiting={FadeOutDown}
+                    style={styles.editForm}
+                  >
+                    <View style={styles.formField}>
+                      <Text style={styles.formLabel}>Name</Text>
+                      <TextInput
+                        style={styles.formInput}
+                        value={editForm.name}
+                        onChangeText={(text) => setEditForm({...editForm, name: text})}
+                        placeholder="Your name"
+                        placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+                      />
+                    </View>
+                    
+                    <View style={styles.formField}>
+                      <Text style={styles.formLabel}>Email</Text>
+                      <TextInput
+                        style={styles.formInput}
+                        value={editForm.email}
+                        onChangeText={(text) => setEditForm({...editForm, email: text})}
+                        placeholder="Your email"
+                        placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+                        keyboardType="email-address"
+                      />
+                    </View>
+                    
+                    <View style={styles.formField}>
+                      <Text style={styles.formLabel}>Phone</Text>
+                      <TextInput
+                        style={styles.formInput}
+                        value={editForm.phone_num}
+                        onChangeText={(text) => setEditForm({...editForm, phone_num: text})}
+                        placeholder="Your phone number"
+                        placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+                        keyboardType="phone-pad"
+                      />
+                    </View>
+                    
+                    <View style={styles.formField}>
+                      <Text style={styles.formLabel}>Bio</Text>
+                      <TextInput
+                        style={[styles.formInput, styles.bioInput]}
+                        value={editForm.bio}
+                        onChangeText={(text) => setEditForm({...editForm, bio: text})}
+                        placeholder="Tell us about yourself"
+                        placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+                        multiline
+                      />
+                    </View>
+                    
+                    <View style={styles.editButtons}>
+                      <TouchableOpacity 
+                        style={[styles.editButton, styles.cancelButton]} 
+                        onPress={handleCancelEdit}
+                      >
+                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity 
+                        style={[styles.editButton, styles.saveButton]} 
+                        onPress={handleSaveProfile}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <Text style={styles.saveButtonText}>Save</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </Animated.View>
+                ) : (
+                  <Animated.View 
+                    entering={FadeInUp}
+                    style={styles.profileInfo}
+                  >
+                    <View style={styles.usernameContainer}>
+                      <Text style={styles.username} numberOfLines={1}>@{artist.user_id}</Text>
+                    </View>
+                    <Text style={styles.fullName}>{artist.name || 'No Name Set'}</Text>
+                    
+                    {artist.bio ? (
+                      <Text style={styles.bio}>{artist.bio}</Text>
+                    ) : (
+                      <Text style={styles.bio}>No bio added yet</Text>
+                    )}
 
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity 
-                  style={styles.contactButton}
-                  onPress={() => setShowContact(!showContact)}
-                >
-                  <Ionicons 
-                    name={showContact ? "chevron-up-outline" : "chevron-down-outline"} 
-                    size={20} 
-                    color="#0066ff" 
-                  />
-                  <Text style={styles.contactButtonText}>Contact Info</Text>
-                </TouchableOpacity>
+                    <View style={styles.buttonContainer}>
+                      <TouchableOpacity 
+                        style={styles.contactButton}
+                        onPress={() => setShowContact(!showContact)}
+                      >
+                        <Ionicons 
+                          name={showContact ? "chevron-up-outline" : "chevron-down-outline"} 
+                          size={20} 
+                          color="#0066ff" 
+                        />
+                        <Text style={styles.contactButtonText}>Contact Info</Text>
+                      </TouchableOpacity>
 
-                <TouchableOpacity 
-                  style={styles.editProfileButton}
-                  onPress={handleEditProfile}
-                >
-                  <Ionicons name="create-outline" size={20} color="#0066ff" style={styles.editIcon} />
-                  <Text style={styles.editProfileText}>Edit Profile</Text>
-                </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={styles.editProfileButton}
+                        onPress={handleEditProfile}
+                      >
+                        <Ionicons name="create-outline" size={20} color="#0066ff" style={styles.editIcon} />
+                        <Text style={styles.editProfileText}>Edit Profile</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {renderContactInfo()}
+                  </Animated.View>
+                )}
               </View>
-
-              {renderContactInfo()}
-            </Animated.View>
-          )}
-        </View>
-        
-        {renderVideoSection()}
-      </ScrollView>
+            );
+          } else if (item.key === 'videos') {
+            return renderVideoSection();
+          }
+          return null;
+        }}
+        keyExtractor={(item) => item.key}
+      />
     </View>
   );
 }

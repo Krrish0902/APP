@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, ActivityIndicator, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, ActivityIndicator, TouchableOpacity, Dimensions, FlatList } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
 import { useTheme } from '../../src/context/ThemeContext';
@@ -116,116 +116,131 @@ export default function ArtistProfileScreen() {
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={true}>
-        <View style={styles.profileHeader}>
-          <TouchableOpacity style={styles.avatarContainer}>
-            <Image 
-              source={{ 
-                uri: artist.profile_picture_url || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
-              }}
-              style={styles.avatar}
-            />
-            <View style={styles.onlineIndicator} />
-          </TouchableOpacity>
-          
-          <Animated.View entering={FadeInUp} style={styles.profileInfo}>
-            <View style={styles.usernameContainer}>
-              <Text style={styles.username} numberOfLines={1}>@{artist.user_id}</Text>
-            </View>
-            
-            <View style={styles.nameContainer}>
-              <Text style={[styles.name, { color: theme === 'dark' ? '#fff' : '#000' }]}>
-                {artist.name}
-              </Text>
-              {artist.is_verified && (
-                <Ionicons name="checkmark-circle" size={24} color="#0066ff" style={styles.verifiedIcon} />
-              )}
-            </View>
-
-            {artist.bio ? (
-              <Text style={styles.bio}>{artist.bio}</Text>
-            ) : (
-              <Text style={styles.bio}>No bio added yet</Text>
-            )}
-
-            <TouchableOpacity 
-              style={styles.contactButton}
-              onPress={() => setShowContact(!showContact)}
-            >
-              <Ionicons 
-                name={showContact ? "chevron-up-outline" : "chevron-down-outline"} 
-                size={20} 
-                color="#0066ff" 
-              />
-              <Text style={styles.contactButtonText}>Contact Info</Text>
-            </TouchableOpacity>
-
-            {showContact && (
-              <Animated.View 
-                entering={FadeInUp}
-                style={styles.contactInfo}
-              >
-                <View style={styles.contactItem}>
-                  <View style={styles.contactIcon}>
-                    <Ionicons name="mail-outline" size={24} color="#0066ff" />
+      <FlatList
+        data={[{ key: 'profile' }, { key: 'videos' }]} // Use a data array to differentiate sections
+        renderItem={({ item }) => {
+          if (item.key === 'profile') {
+            return (
+              <View style={styles.profileHeader}>
+                <TouchableOpacity style={styles.avatarContainer}>
+                  <Image 
+                    source={{ 
+                      uri: artist.profile_picture_url || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
+                    }}
+                    style={styles.avatar}
+                  />
+                  <View style={styles.onlineIndicator} />
+                </TouchableOpacity>
+                
+                <Animated.View entering={FadeInUp} style={styles.profileInfo}>
+                  <View style={styles.usernameContainer}>
+                    <Text style={styles.username} numberOfLines={1}>@{artist.user_id}</Text>
                   </View>
-                  <View>
-                    <Text style={[styles.contactText, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
-                      {artist.email || 'No Email'}
+                  
+                  <View style={styles.nameContainer}>
+                    <Text style={[styles.name, { color: theme === 'dark' ? '#fff' : '#000' }]}>
+                      {artist.name}
                     </Text>
-                    <Text style={styles.contactLabel}>Email</Text>
+                    {artist.is_verified && (
+                      <Ionicons name="checkmark-circle" size={24} color="#0066ff" style={styles.verifiedIcon} />
+                    )}
                   </View>
-                </View>
 
-                <View style={styles.contactItem}>
-                  <View style={styles.contactIcon}>
-                    <Ionicons name="call-outline" size={24} color="#0066ff" />
-                  </View>
-                  <View>
-                    <Text style={[styles.contactText, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
-                      {artist.phone_num || 'No Phone'}
-                    </Text>
-                    <Text style={styles.contactLabel}>Phone</Text>
-                  </View>
-                </View>
-              </Animated.View>
-            )}
-          </Animated.View>
-        </View>
+                  {artist.bio ? (
+                    <Text style={styles.bio}>{artist.bio}</Text>
+                  ) : (
+                    <Text style={styles.bio}>No bio added yet</Text>
+                  )}
 
-        <View style={styles.videoSection}>
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
-          My Videos
-        </Text>
-      </View>
+                  <TouchableOpacity 
+                    style={styles.contactButton}
+                    onPress={() => setShowContact(!showContact)}
+                  >
+                    <Ionicons 
+                      name={showContact ? "chevron-up-outline" : "chevron-down-outline"} 
+                      size={20} 
+                      color="#0066ff" 
+                    />
+                    <Text style={styles.contactButtonText}>Contact Info</Text>
+                  </TouchableOpacity>
 
-      {videos.length > 0 ? (
-        <ScrollView showsVerticalScrollIndicator={false} style={styles.videoList}>
-          {videos.map((video) => (
-            <View key={video.id} style={styles.videoCard}>
-              <View style={{ position: 'relative' }}>
-                <Video
-                  source={{ uri: supabase.storage.from('artist-media').getPublicUrl(video.file_path).data.publicUrl }}
-                  style={styles.videoThumbnail}
-                  resizeMode={ResizeMode.COVER}
-                  useNativeControls
-                  isLooping
-                />
-                <Text style={[styles.videoDate, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
-                  {new Date(video.created_at).toLocaleDateString()}
-                </Text>
+                  {showContact && (
+                    <Animated.View 
+                      entering={FadeInUp}
+                      style={styles.contactInfo}
+                    >
+                      <View style={styles.contactItem}>
+                        <View style={styles.contactIcon}>
+                          <Ionicons name="mail-outline" size={24} color="#0066ff" />
+                        </View>
+                        <View>
+                          <Text style={[styles.contactText, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
+                            {artist.email || 'No Email'}
+                          </Text>
+                          <Text style={styles.contactLabel}>Email</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.contactItem}>
+                        <View style={styles.contactIcon}>
+                          <Ionicons name="call-outline" size={24} color="#0066ff" />
+                        </View>
+                        <View>
+                          <Text style={[styles.contactText, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
+                            {artist.phone_num || 'No Phone'}
+                          </Text>
+                          <Text style={styles.contactLabel}>Phone</Text>
+                        </View>
+                      </View>
+                    </Animated.View>
+                  )}
+                </Animated.View>
               </View>
-            </View>
-          ))}
-        </ScrollView>
-      ) : (
-        <Text style={[styles.noVideosText, { color: theme === 'dark' ? '#999999' : '#666666' }]}>
-          No videos uploaded yet
-        </Text>
-      )}
-    </View>
-      </ScrollView>
+            );
+          } else if (item.key === 'videos') {
+            return (
+              <View style={styles.videoSection}>
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
+                    My Videos
+                  </Text>
+                </View>
+
+                {videos.length > 0 ? (
+                  <FlatList
+                    data={videos}
+                    renderItem={({ item }) => (
+                      <View style={styles.videoCard}>
+                        <View style={{ position: 'relative' }}>
+                          <Video
+                            source={{ uri: supabase.storage.from('artist-media').getPublicUrl(item.file_path).data.publicUrl }}
+                            style={styles.videoThumbnail}
+                            resizeMode={ResizeMode.COVER}
+                            useNativeControls
+                            isLooping
+                          />
+                          <Text style={[styles.videoDate, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
+                            {new Date(item.created_at).toLocaleDateString()}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+                    keyExtractor={(item) => item.id}
+                    numColumns={2}
+                    columnWrapperStyle={styles.columnWrapper}
+                  />
+                ) : (
+                  <Text style={[styles.noVideosText, { color: theme === 'dark' ? '#999999' : '#666666' }]}>
+                    No videos uploaded yet
+                  </Text>
+                )}
+              </View>
+            );
+          }
+          return null;
+        }}
+        keyExtractor={(item) => item.key}
+      />
     </View>
   );
 }
@@ -418,9 +433,8 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
   },
-  videoList: {
-    marginHorizontal: -20,
-    paddingHorizontal: 20,
+  columnWrapper: {
+    justifyContent: 'space-between',
   },
   noVideosText: {
     textAlign: 'center',
