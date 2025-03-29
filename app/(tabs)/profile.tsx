@@ -12,6 +12,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
 import { supabase } from '../../src/lib/supabase';
 import { decode } from 'base64-arraybuffer';
+import Constants from "expo-constants";
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -29,6 +30,7 @@ export default function ProfileScreen() {
     bio: '',
     email: '',
     phone_num: '',
+    location: '',
   });
 
   const styles = StyleSheet.create({
@@ -410,6 +412,7 @@ export default function ProfileScreen() {
         bio: artist.bio || '',
         email: artist.email || '',
         phone_num: artist.phone_num ? String(artist.phone_num) : '',
+        location: artist.location || '',
       });
       fetchUserVideos();
     }
@@ -551,6 +554,22 @@ export default function ProfileScreen() {
     }
   };
 
+  const geocodeLocation = async (address : string) => {
+    const apiKey = Constants.expoConfig.extra.YOUR_GOOGLE_MAPS_API_KEY;
+    const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`);
+    const data = await response.json();
+
+    if (data.status === 'OK') {
+      const { lat, lng } = data.results[0].geometry.location;
+      console.log('Latitude:', lat); 
+      console.log('Longitude:', lng);
+      return { lat, lng };
+    } else {
+      Alert.alert('Error', 'Could not geocode location');
+      return { lat: null, lng: null };
+    }
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -575,8 +594,17 @@ export default function ProfileScreen() {
         bio: editForm.bio,
         email: editForm.email,
         phone_num: editForm.phone_num ? parseInt(editForm.phone_num) : null,
+        location: editForm.location,
+        latitude: null,
+        longitude: null,
       };
-      
+
+      if (editForm.location) {
+        const { lat, lng } = await geocodeLocation(editForm.location);
+        updates.latitude = lat;
+        updates.longitude = lng;
+      }
+
       const { error } = await updateArtistProfile(user.id, updates);
       
       if (error) throw error;
@@ -598,6 +626,7 @@ export default function ProfileScreen() {
         bio: artist.bio || '',
         email: artist.email || '',
         phone_num: artist.phone_num ? String(artist.phone_num) : '',
+        location: artist.location || '',
       });
     }
     setIsEditing(false);
@@ -762,6 +791,16 @@ export default function ProfileScreen() {
             <Text style={styles.contactLabel}>Phone</Text>
           </View>
         </TouchableOpacity>
+
+        <TouchableOpacity style={styles.contactItem} onPress={() => {}}>
+          <View style={styles.contactIcon}>
+            <Ionicons name="map" size={24} color="#0066ff" />
+          </View>
+          <View>
+            <Text style={styles.contactText}>{artist?.location || 'No Location'}</Text>
+            <Text style={styles.contactLabel}>Location</Text>
+          </View>
+        </TouchableOpacity>
       </Animated.View>
     );
   };
@@ -855,6 +894,17 @@ export default function ProfileScreen() {
                         placeholder="Your phone number"
                         placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
                         keyboardType="phone-pad"
+                      />
+                    </View>
+                    
+                    <View style={styles.formField}>
+                      <Text style={styles.formLabel}>Location</Text>
+                      <TextInput
+                        style={styles.formInput}
+                        value={editForm.location}
+                        onChangeText={(text) => setEditForm({...editForm, location: text})}
+                        placeholder="Your location"
+                        placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
                       />
                     </View>
                     

@@ -184,6 +184,18 @@ export default function ArtistProfileScreen() {
                           <Text style={styles.contactLabel}>Phone</Text>
                         </View>
                       </View>
+
+                      <View style={styles.contactItem}>
+                        <View style={styles.contactIcon}>
+                          <Ionicons name="map" size={24} color="#0066ff" />
+                        </View>
+                        <View>
+                          <Text style={[styles.contactText, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
+                            {artist.location || 'No Location'}
+                          </Text>
+                          <Text style={styles.contactLabel}>Location</Text>
+                        </View>
+                      </View>
                     </Animated.View>
                   )}
                 </Animated.View>

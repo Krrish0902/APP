@@ -83,7 +83,7 @@ export default function SignUp() {
 
     try {
       setIsLoading(true);
-      const { data, error } = await signUpWithEmail(email, password, name, phoneNumber, lat, lng, profilePicture);
+      const { data, error } = await signUpWithEmail(email, password, name, phoneNumber, location, lat, lng, profilePicture);
       
       if (error) {
         Alert.alert('Error', (error as { message?: string }).message || 'Failed to sign up');
