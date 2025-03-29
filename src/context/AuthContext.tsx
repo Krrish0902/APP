@@ -14,6 +14,7 @@ interface AuthContextType {
   isLoading: boolean;
   signOut: () => Promise<void>;
   refreshArtistProfile: () => Promise<void>;
+  userCoordinates: { latitude: number; longitude: number } | null; // Add user coordinates
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   signOut: async () => {},
   refreshArtistProfile: async () => {},
+  userCoordinates: null, // Default user coordinates
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -30,6 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<any | null>(null);
   const [artist, setArtist] = useState<Artist | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [userCoordinates, setUserCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
   const router = useRouter();
 
   const fetchArtistProfile = async (userId: string) => {
@@ -53,6 +56,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const fetchUserCoordinates = async () => {
+    if (artist?.latitude && artist?.longitude) {
+      setUserCoordinates({ latitude: artist.latitude, longitude: artist.longitude });
+    }
+  };
+
+  useEffect(() => {
+    if (artist) {
+      fetchUserCoordinates();
+    }
+  }, [artist]);
+
   useEffect(() => {
     // Set up auth state change listener
     const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -65,6 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
           setArtist(null);
+          setUserCoordinates(null);
           router.replace('/(auth)/login'); // Redirect to login page
         }
       }
@@ -80,6 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     setUser(null);
     setArtist(null);
+    setUserCoordinates(null);
     setIsLoading(false);
     router.replace('/(auth)/login'); // Redirect to login page on initial load
   }, [router]);
@@ -88,6 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
     setUser(null);
     setArtist(null);
+    setUserCoordinates(null);
   };
 
   return (
@@ -98,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         signOut: handleSignOut,
         refreshArtistProfile,
+        userCoordinates, // Provide user coordinates
       }}
     >
       {children}

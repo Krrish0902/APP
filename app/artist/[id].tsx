@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { Video, ResizeMode } from 'expo-av';
+import { useAuth } from '../../src/context/AuthContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -19,6 +20,8 @@ interface Artist {
   email: string;
   phone_num: string;
   user_id: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface video {
@@ -36,6 +39,7 @@ export default function ArtistProfileScreen() {
   const [showContact, setShowContact] = useState(false);
   const { theme } = useTheme();
   const router = useRouter();
+  const { userCoordinates } = useAuth(); // Access user coordinates
 
   useEffect(() => {
     fetchArtistProfile();
@@ -79,6 +83,22 @@ export default function ArtistProfileScreen() {
       setError('Failed to load artist videos');
     }
   };
+
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+    const R = 6371; // Earth's radius in km
+    const dLat = toRadians(lat2 - lat1);
+    const dLon = toRadians(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+  };
+
+  const distance = userCoordinates && artist?.latitude && artist?.longitude
+    ? calculateDistance(userCoordinates.latitude, userCoordinates.longitude, artist.latitude, artist.longitude)
+    : null;
 
   if (isLoading) {
     return (
@@ -185,7 +205,7 @@ export default function ArtistProfileScreen() {
                         </View>
                       </View>
 
-                      <View style={styles.contactItem}>
+                      <View style={styles.contactItem_distance}>
                         <View style={styles.contactIcon}>
                           <Ionicons name="map" size={24} color="#0066ff" />
                         </View>
@@ -193,11 +213,17 @@ export default function ArtistProfileScreen() {
                           <Text style={[styles.contactText, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
                             {artist.location || 'No Location'}
                           </Text>
+                          {distance !== null && (
+                          <Text style={[styles.contactText_distance, { color: theme === 'dark' ? '#fff' : '#000' }]}>
+                           {distance.toFixed(2)} km away
+                          </Text>
+                          )}
                           <Text style={styles.contactLabel}>Location</Text>
                         </View>
                       </View>
                     </Animated.View>
                   )}
+
                 </Animated.View>
               </View>
             );
@@ -375,6 +401,15 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     marginBottom: 10,
   },
+  contactItem_distance: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    padding: 15,
+    borderRadius: 15,
+    marginBottom: 10,
+    display: 'flex',
+  },
   contactIcon: {
     width: 40,
     height: 40,
@@ -386,6 +421,10 @@ const styles = StyleSheet.create({
   },
   contactText: {
     fontSize: 16,
+    flex: 1,
+  },
+  contactText_distance: {
+    fontSize: 12,
     flex: 1,
   },
   contactLabel: {
@@ -445,4 +484,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
   },
-}); 
+  distanceText: {
+    fontSize: 16,
+    marginTop: 10,
+    textAlign: 'center',
+  },
+});

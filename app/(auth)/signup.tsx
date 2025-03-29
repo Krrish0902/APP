@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, StatusBar, ScrollView } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { signUpWithEmail } from '../../src/lib/auth';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { useFonts } from 'expo-font';
 import Constants from "expo-constants";
 
@@ -16,7 +17,9 @@ export default function SignUp() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [location, setLocation] = useState('');
-
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false); // Add state for location fetching
 
   const headerTitleStyle = StyleSheet.create({
     title: {
@@ -58,41 +61,59 @@ export default function SignUp() {
       Alert.alert('Error', 'Failed to pick image. Please try again.');
     }
   };
-  const geocodeLocation = async (address : string) => {
-    const apiKey = Constants.expoConfig.extra.YOUR_GOOGLE_MAPS_API_KEY;
-    const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`);
-    const data = await response.json();
 
-    if (data.status === 'OK') {
-      const { lat, lng } = data.results[0].geometry.location;
-      console.log('Latitude:', lat); 
-      console.log('Longitude:', lng);
-      return { lat, lng };
-    } else {
-      Alert.alert('Error', 'Could not geocode location');
-      return { lat: null, lng: null };
+  const getCurrentLocation = async () => {
+    try {
+      console.log('Requesting location permissions...');
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.warn('Location permission not granted. Proceeding without location.');
+        Alert.alert('Permission Denied', 'Location permission is required to fetch your current location.');
+        return;
+      }
+
+      console.log('Fetching current location...');
+      setIsFetchingLocation(true); // Show loading indicator
+      const location = await Location.getCurrentPositionAsync({});
+      setLatitude(location.coords.latitude);
+      setLongitude(location.coords.longitude);
+      console.log('Location fetched:', location.coords);
+      Alert.alert('Success', 'Location fetched successfully!');
+    } catch (error) {
+      console.error('Error fetching location:', error);
+      Alert.alert('Error', 'Failed to fetch location. Please try again.');
+    } finally {
+      setIsFetchingLocation(false); // Hide loading indicator
     }
   };
+
   const handleSignUp = async () => {
     if (!name || !email || !password) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
 
-    const { lat, lng } = await geocodeLocation(location);
-
     try {
       setIsLoading(true);
-      const { data, error } = await signUpWithEmail(email, password, name, phoneNumber, location, lat, lng, profilePicture);
-      
+      const { data, error } = await signUpWithEmail(
+        email,
+        password,
+        name,
+        phoneNumber,
+        location,
+        latitude, // These can be null if location is not available
+        longitude,
+        profilePicture
+      );
+
       if (error) {
         Alert.alert('Error', (error as { message?: string }).message || 'Failed to sign up');
         return;
       }
-      
+
       if (data) {
         Alert.alert(
-          'Success', 
+          'Success',
           'Account created successfully! Please sign in.',
           [{ text: 'OK', onPress: () => router.replace('/login') }]
         );
@@ -103,6 +124,16 @@ export default function SignUp() {
       setIsLoading(false);
     }
   };
+
+  const handleLocationButtonPress = async () => {
+    console.log('Location button pressed');
+    await getCurrentLocation(); // Trigger GPS access only when the button is pressed
+  };
+
+  useEffect(() => {
+    // Remove the automatic location fetching on page load
+    // getCurrentLocation(); // This line is no longer needed
+  }, []);
 
   return (
     <>
@@ -243,9 +274,24 @@ export default function SignUp() {
                   placeholder="Location"
                   placeholderTextColor={ '#999999'}
                   value={location}
-                  onChangeText={setLocation}
+                  onChangeText={(text) => {
+                    setLocation(text);
+                  }}
                   autoCapitalize="none"
                 />
+                {location.length > 0 && (
+                  <TouchableOpacity 
+                    style={styles.locationButton} 
+                    onPress={handleLocationButtonPress}
+                    disabled={isFetchingLocation} // Disable button while fetching location
+                  >
+                    {isFetchingLocation ? (
+                      <ActivityIndicator size="small" color="#0066ff" />
+                    ) : (
+                      <Ionicons name="locate-outline" size={20} color="#0066ff" />
+                    )}
+                  </TouchableOpacity>
+                )}
               </View>
 
               <View style={[styles.inputContainer, {
@@ -416,5 +462,12 @@ const styles = StyleSheet.create({
     color: '#0057FF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  locationButton: {
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,102,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

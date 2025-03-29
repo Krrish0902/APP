@@ -13,6 +13,7 @@ import { Video, ResizeMode } from 'expo-av';
 import { supabase } from '../../src/lib/supabase';
 import { decode } from 'base64-arraybuffer';
 import Constants from "expo-constants";
+import * as Location from 'expo-location';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -31,7 +32,10 @@ export default function ProfileScreen() {
     email: '',
     phone_num: '',
     location: '',
+    longitude: '',
+    latitude: '',
   });
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false); // Add state for location fetching
 
   const styles = StyleSheet.create({
     container: {
@@ -403,6 +407,14 @@ export default function ProfileScreen() {
     columnWrapper: {
       justifyContent: 'space-between',
     },
+    locationButton: {
+      padding: 8,
+      borderRadius: 12,
+      backgroundColor: 'rgba(0,102,255,0.1)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: 8,
+    },
   });
 
   useEffect(() => {
@@ -413,6 +425,8 @@ export default function ProfileScreen() {
         email: artist.email || '',
         phone_num: artist.phone_num ? String(artist.phone_num) : '',
         location: artist.location || '',
+        longitude: artist.longitude || null,
+        latitude: artist.latitude || null,
       });
       fetchUserVideos();
     }
@@ -435,6 +449,7 @@ export default function ProfileScreen() {
       console.error('Error fetching videos:', error);
     }
   };
+ 
 
   const handleUploadVideo = async () => {
     try {
@@ -554,19 +569,41 @@ export default function ProfileScreen() {
     }
   };
 
-  const geocodeLocation = async (address : string) => {
-    const apiKey = Constants.expoConfig.extra.YOUR_GOOGLE_MAPS_API_KEY;
-    const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`);
-    const data = await response.json();
 
-    if (data.status === 'OK') {
-      const { lat, lng } = data.results[0].geometry.location;
-      console.log('Latitude:', lat); 
-      console.log('Longitude:', lng);
-      return { lat, lng };
-    } else {
-      Alert.alert('Error', 'Could not geocode location');
-      return { lat: null, lng: null };
+  const getCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.warn('Location permission not granted. Proceeding without location.');
+        Alert.alert('Permission Denied', 'Location permission is required to fetch your current location.');
+        return { latitude: null, longitude: null };
+      }
+
+      setIsFetchingLocation(true); // Show loading indicator
+      const location = await Location.getCurrentPositionAsync({});
+      Alert.alert('Success', 'Location fetched successfully!');
+      return {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      };
+    } catch (error) {
+      console.error('Error fetching location:', error);
+      Alert.alert('Error', 'Failed to fetch location. Please try again.');
+      return { latitude: null, longitude: null };
+    } finally {
+      setIsFetchingLocation(false); // Hide loading indicator
+    }
+  };
+
+  const handleLocationButtonPress = async () => {
+    console.log('Location button pressed');
+    const { latitude, longitude } = await getCurrentLocation();
+    if (latitude && longitude) {
+      setEditForm((prev) => ({
+        ...prev,
+        latitude: `${latitude}`,
+        longitude: `${longitude}`,
+      }));
     }
   };
 
@@ -600,9 +637,9 @@ export default function ProfileScreen() {
       };
 
       if (editForm.location) {
-        const { lat, lng } = await geocodeLocation(editForm.location);
-        updates.latitude = lat;
-        updates.longitude = lng;
+        const { latitude, longitude } = await getCurrentLocation(); // Fetch location only when saving
+        updates.latitude = latitude;
+        updates.longitude = longitude;
       }
 
       const { error } = await updateArtistProfile(user.id, updates);
@@ -627,6 +664,8 @@ export default function ProfileScreen() {
         email: artist.email || '',
         phone_num: artist.phone_num ? String(artist.phone_num) : '',
         location: artist.location || '',
+        latitude: artist.latitude || null,
+        longitude: artist.longitude || null,
       });
     }
     setIsEditing(false);
@@ -899,13 +938,28 @@ export default function ProfileScreen() {
                     
                     <View style={styles.formField}>
                       <Text style={styles.formLabel}>Location</Text>
-                      <TextInput
-                        style={styles.formInput}
-                        value={editForm.location}
-                        onChangeText={(text) => setEditForm({...editForm, location: text})}
-                        placeholder="Your location"
-                        placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
-                      />
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <TextInput
+                          style={[styles.formInput, { flex: 1 }]}
+                          value={editForm.location}
+                          onChangeText={(text) => setEditForm({ ...editForm, location: text })}
+                          placeholder="Your location"
+                          placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+                        />
+                        {editForm.location.length > 0 && (
+                          <TouchableOpacity 
+                            style={styles.locationButton} 
+                            onPress={handleLocationButtonPress}
+                            disabled={isFetchingLocation}
+                          >
+                            {isFetchingLocation ? (
+                              <ActivityIndicator size="small" color="#0066ff" />
+                            ) : (
+                              <Ionicons name="locate-outline" size={20} color="#0066ff" />
+                            )}
+                          </TouchableOpacity>
+                        )}
+                      </View>
                     </View>
                     
                     <View style={styles.formField}>
