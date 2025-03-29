@@ -59,7 +59,7 @@ interface Video {
 export default function HomeScreen() {
   // All hooks must be at the top level
   const [fontsLoaded] = useFonts({
-    'Meddon': require('../../assets/fonts/Meddon-Regular.ttf'),
+    'Meddon': require('../../assets/fonts/DancingScript-Bold.ttf'),
   });
   const insets = useSafeAreaInsets();
 

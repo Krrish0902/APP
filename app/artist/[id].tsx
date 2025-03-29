@@ -101,20 +101,12 @@ export default function ArtistProfileScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme === 'dark' ? '#000' : '#fff' }]}>
       <Stack.Screen options={{ headerShown: false }} />
-      <LinearGradient
-        colors={[theme === 'dark' ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.8)', 'transparent']}
-        style={styles.headerGradient}
-      >
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={theme === 'dark' ? '#FFFFFF' : '#000000'} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
-            Artist Profile
-          </Text>
-          <View style={{ width: 40 }} /> {/* Placeholder for header alignment */}
-        </View>
-      </LinearGradient>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#0066ff" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Artist Profile</Text>
+      </View>
 
       <FlatList
         data={[{ key: 'profile' }, { key: 'videos' }]} // Use a data array to differentiate sections
@@ -249,37 +241,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 120,
-    zIndex: 1,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: 40,
     paddingBottom: 20,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    backgroundColor: 'transparent',
   },
   backButton: {
     padding: 8,
     borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.1)',
   },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#0066ff',
+  },
   content: {
     flex: 1,
   },
   profileHeader: {
     alignItems: 'center',
-    paddingTop: 100,
+    paddingTop: 20,
     paddingHorizontal: 20,
     width: '100%',
   },

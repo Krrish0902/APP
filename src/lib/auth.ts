@@ -33,6 +33,8 @@ export const signUpWithEmail = async (
   password: string, 
   fullName: string, 
   phoneNumber: string,
+  latitude?: number,
+  longitude?: number,
   profilePicture?: string | null
 ) => {
   try {
@@ -60,6 +62,8 @@ export const signUpWithEmail = async (
         password: password,
         user_id: user_id,
         phone_num: phoneNumber ? parseInt(phoneNumber) : undefined,
+        latitude: latitude ? latitude : undefined,
+        longitude: latitude ? longitude : undefined,
         bio: `Artist profile for ${fullName}`,
       });
 

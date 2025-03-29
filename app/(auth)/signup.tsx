@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, StatusBar, ScrollView } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { signUpWithEmail } from '../../src/lib/auth';
 import * as ImagePicker from 'expo-image-picker';
 import { useFonts } from 'expo-font';
+import Constants from "expo-constants";
 
 export default function SignUp() {
   const [name, setName] = useState('');
@@ -14,6 +15,7 @@ export default function SignUp() {
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [location, setLocation] = useState('');
 
 
   const headerTitleStyle = StyleSheet.create({
@@ -29,7 +31,7 @@ export default function SignUp() {
   }).title;
 
   const [fontsLoaded] = useFonts({
-    'Meddon': require('../../assets/fonts/Meddon-Regular.ttf'),
+    'Meddon': require('../../assets/fonts/DancingScript-Bold.ttf'),
   });
 
   const handlePickImage = async () => {
@@ -56,16 +58,32 @@ export default function SignUp() {
       Alert.alert('Error', 'Failed to pick image. Please try again.');
     }
   };
+  const geocodeLocation = async (address : string) => {
+    const apiKey = Constants.expoConfig.extra.YOUR_GOOGLE_MAPS_API_KEY;
+    const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`);
+    const data = await response.json();
 
+    if (data.status === 'OK') {
+      const { lat, lng } = data.results[0].geometry.location;
+      console.log('Latitude:', lat); 
+      console.log('Longitude:', lng);
+      return { lat, lng };
+    } else {
+      Alert.alert('Error', 'Could not geocode location');
+      return { lat: null, lng: null };
+    }
+  };
   const handleSignUp = async () => {
     if (!name || !email || !password) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
 
+    const { lat, lng } = await geocodeLocation(location);
+
     try {
       setIsLoading(true);
-      const { data, error } = await signUpWithEmail(email, password, name, phoneNumber, profilePicture);
+      const { data, error } = await signUpWithEmail(email, password, name, phoneNumber, lat, lng, profilePicture);
       
       if (error) {
         Alert.alert('Error', (error as { message?: string }).message || 'Failed to sign up');
@@ -100,170 +118,196 @@ export default function SignUp() {
           paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
         }]}
       >
-        <View style={[styles.content, {
-          backgroundColor:  '#FFFFFF',
-        }]}>
-          <View style={styles.header}>
-            <Image 
-              source={require('../../assets/images/signup-art.png')} 
-              style={styles.illustration}
-              resizeMode="contain"
-            />
-            <Text style={headerTitleStyle}>BEHANCE</Text> 
-            
-            <Text style={[styles.subtitle, {
-              color: '#666666'
-            }]} numberOfLines={2}>
-              Create your account to showcase your talent.
-            </Text>
-          </View>
+        <ScrollView 
+          contentContainerStyle={styles.scrollViewContent} 
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={[styles.content, {
+            backgroundColor:  '#FFFFFF',
+          }]}>
+            <View style={styles.header}>
+              <Image 
+                source={require('../../assets/images/signup-art.png')} 
+                style={styles.illustration}
+                resizeMode="contain"
+              />
+              <Text style={headerTitleStyle}>BEHANCE</Text> 
+              
+              <Text style={[styles.subtitle, {
+                color: '#666666'
+              }]} numberOfLines={2}>
+                Create your account to showcase your talent.
+              </Text>
+            </View>
 
-          <View style={styles.form}>
-            <TouchableOpacity 
-              style={[styles.profilePictureContainer, {
-                backgroundColor: '#F5F5F5',
-                borderColor: '#E0E0E0',
-              }]} 
-              onPress={handlePickImage}
-            >
-              {profilePicture ? (
-                <Image 
-                  source={{ uri: profilePicture }} 
-                  style={styles.profilePicture} 
+            <View style={styles.form}>
+              <TouchableOpacity 
+                style={[styles.profilePictureContainer, {
+                  backgroundColor: '#F5F5F5',
+                  borderColor: '#E0E0E0',
+                }]} 
+                onPress={handlePickImage}
+              >
+                {profilePicture ? (
+                  <Image 
+                    source={{ uri: profilePicture }} 
+                    style={styles.profilePicture} 
+                  />
+                ) : (
+                  <View style={styles.profilePicturePlaceholder}>
+                    <Ionicons 
+                      name="camera" 
+                      size={32} 
+                      color={ '#666666'} 
+                    />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <View style={[styles.inputContainer, {
+                backgroundColor:'#F5F5F5'
+              }]}>
+                <Ionicons 
+                  name="person-outline" 
+                  size={20} 
+                  color={'#666666'} 
+                  style={styles.inputIcon} 
                 />
-              ) : (
-                <View style={styles.profilePicturePlaceholder}>
+                <TextInput
+                  style={[styles.input, {
+                    color:'#000000'
+                  }]}
+                  placeholder="Full Name"
+                  placeholderTextColor={ '#999999'}
+                  value={name}
+                  onChangeText={setName}
+                />
+              </View>
+
+              <View style={[styles.inputContainer, {
+                backgroundColor:  '#F5F5F5'
+              }]}>
+                <Ionicons 
+                  name="mail-outline" 
+                  size={20} 
+                  color={'#666666'} 
+                  style={styles.inputIcon} 
+                />
+                <TextInput
+                  style={[styles.input, {
+                    color: '#000000'
+                  }]}
+                  placeholder="Email"
+                  placeholderTextColor={ '#999999'}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={[styles.inputContainer, {
+                backgroundColor:'#F5F5F5'
+              }]}>
+                <Ionicons 
+                  name="call-outline" 
+                  size={20} 
+                  color={'#666666'} 
+                  style={styles.inputIcon} 
+                />
+                <TextInput
+                  style={[styles.input, {
+                    color: '#000000'
+                  }]}
+                  placeholder="Mobile Number (Optional)"
+                  placeholderTextColor={ '#999999'}
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  keyboardType="phone-pad"
+                />
+              </View>
+
+              <View style={[styles.inputContainer, {
+                backgroundColor:  '#F5F5F5'
+              }]}>
+                <Ionicons 
+                  name="map" 
+                  size={20} 
+                  color={'#666666'} 
+                  style={styles.inputIcon} 
+                />
+                <TextInput
+                  style={[styles.input, {
+                    color: '#000000'
+                  }]}
+                  placeholder="Location"
+                  placeholderTextColor={ '#999999'}
+                  value={location}
+                  onChangeText={setLocation}
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={[styles.inputContainer, {
+                backgroundColor: '#F5F5F5'
+              }]}>
+                <Ionicons 
+                  name="lock-closed-outline" 
+                  size={20} 
+                  color={'#666666'} 
+                  style={styles.inputIcon} 
+                />
+                <TextInput
+                  style={[styles.input, {
+                    color: '#000000'
+                  }]}
+                  placeholder="Password"
+                  placeholderTextColor={'#999999'}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                   <Ionicons 
-                    name="camera" 
-                    size={32} 
+                    name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                    size={20} 
                     color={ '#666666'} 
                   />
-                </View>
-              )}
-            </TouchableOpacity>
+                </TouchableOpacity>
+              </View>
 
-            <View style={[styles.inputContainer, {
-              backgroundColor:'#F5F5F5'
-            }]}>
-              <Ionicons 
-                name="person-outline" 
-                size={20} 
-                color={'#666666'} 
-                style={styles.inputIcon} 
-              />
-              <TextInput
-                style={[styles.input, {
-                  color:'#000000'
-                }]}
-                placeholder="Full Name"
-                placeholderTextColor={ '#999999'}
-                value={name}
-                onChangeText={setName}
-              />
-            </View>
-
-            <View style={[styles.inputContainer, {
-              backgroundColor:  '#F5F5F5'
-            }]}>
-              <Ionicons 
-                name="mail-outline" 
-                size={20} 
-                color={'#666666'} 
-                style={styles.inputIcon} 
-              />
-              <TextInput
-                style={[styles.input, {
-                  color: '#000000'
-                }]}
-                placeholder="Email"
-                placeholderTextColor={ '#999999'}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-
-            <View style={[styles.inputContainer, {
-              backgroundColor:'#F5F5F5'
-            }]}>
-              <Ionicons 
-                name="call-outline" 
-                size={20} 
-                color={'#666666'} 
-                style={styles.inputIcon} 
-              />
-              <TextInput
-                style={[styles.input, {
-                  color: '#000000'
-                }]}
-                placeholder="Mobile Number (Optional)"
-                placeholderTextColor={ '#999999'}
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                keyboardType="phone-pad"
-              />
-            </View>
-
-            <View style={[styles.inputContainer, {
-              backgroundColor: '#F5F5F5'
-            }]}>
-              <Ionicons 
-                name="lock-closed-outline" 
-                size={20} 
-                color={'#666666'} 
-                style={styles.inputIcon} 
-              />
-              <TextInput
-                style={[styles.input, {
-                  color: '#000000'
-                }]}
-                placeholder="Password"
-                placeholderTextColor={'#999999'}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <Ionicons 
-                  name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                  size={20} 
-                  color={ '#666666'} 
-                />
+              <TouchableOpacity 
+                style={styles.signUpButton} 
+                onPress={handleSignUp}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.signUpButtonText} numberOfLines={1}>
+                    Create Account
+                  </Text>
+                )}
               </TouchableOpacity>
-            </View>
 
-            <TouchableOpacity 
-              style={styles.signUpButton} 
-              onPress={handleSignUp}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.signUpButtonText} numberOfLines={1}>
-                  Create Account
-                </Text>
-              )}
-            </TouchableOpacity>
-
-            <View style={styles.footer}>
-              <View style={styles.footerContent}>
-                <Text style={[styles.footerText, {
-                  color: '#666666'
-                }]}>
-                  Already have an account?
-                </Text>
-                <Link href="/login" asChild>
-                  <TouchableOpacity style={styles.footerLinkContainer}>
-                    <Text style={styles.footerLink}>Sign In</Text>
-                  </TouchableOpacity>
-                </Link>
+              <View style={styles.footer}>
+                <View style={styles.footerContent}>
+                  <Text style={[styles.footerText, {
+                    color: '#666666'
+                  }]}>
+                    Already have an account?
+                  </Text>
+                  <Link href="/login" asChild>
+                    <TouchableOpacity style={styles.footerLinkContainer}>
+                      <Text style={styles.footerLink}>Sign In</Text>
+                    </TouchableOpacity>
+                  </Link>
+                </View>
               </View>
             </View>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </>
   );
@@ -273,9 +317,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollViewContent: {
+    flexGrow: 1,
+    padding: 30,
+  },
   content: {
     flex: 1,
-    padding: 30,
   },
   header: {
     alignItems: 'center',

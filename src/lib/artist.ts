@@ -12,6 +12,8 @@ export interface Artist {
   user_id: string;
   password: string;
   dob: string;
+  latitude: number;
+  longitude: number;
   bio: string;
   profile_picture_url: string | null;
   is_verified?: boolean;
@@ -41,6 +43,8 @@ export const createArtistProfile = async (
     password?: string;
     user_id?: string;
     phone_num?: number;
+    latitude?: number,
+    longitude?: number,
     bio?: string;
   }
 ) => {
@@ -54,6 +58,8 @@ export const createArtistProfile = async (
         password: artistData.password,
         user_id: artistData.user_id,
         phone_num: artistData.phone_num,
+        latitude: artistData.latitude,
+        longitude: artistData.longitude,
         bio: artistData.bio,
       })
       .select()
