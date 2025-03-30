@@ -144,10 +144,27 @@ export async function searchArtists(query: string) {
       .order('name');
 
     if (error) throw error;
-
     return { artists, error: null };
   } catch (error) {
     console.error('Error searching artists:', error);
+    return { artists: null, error };
+  }
+}
+
+export async function searchArtistsByDistance( options: { latitude: number; longitude: number; distance: number }) {
+  try {
+    const { latitude, longitude, distance } = options;
+    const { data: artists, error } = await supabase
+      .rpc('search_artists_by_distance', {
+        user_latitude: latitude,
+        user_longitude: longitude,
+        search_distance: distance,
+      });
+
+    if (error) throw error;
+    return { artists, error: null };
+  } catch (error) {
+    console.error('Error searching artists by distance:', error);
     return { artists: null, error };
   }
 }

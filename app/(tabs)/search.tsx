@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity, ActivityIndicator, Dimensions, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { searchArtists } from '../../src/lib/artist';
+import { searchArtists, searchArtistsByDistance } from '../../src/lib/artist';
 import { Link, useRouter } from 'expo-router';
 import { useTheme } from '../../src/context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useAuth } from '../../src/context/AuthContext';
+import * as Location from 'expo-location';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -27,6 +28,10 @@ export default function SearchScreen() {
   const { theme } = useTheme();
   const { user } = useAuth();
   const router = useRouter();
+
+  const [distance, setDistance] = useState(''); // State for distance input
+  const [showDistanceInput, setShowDistanceInput] = useState(false); // Toggle distance input field
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null); // User's current location
 
   const getStorageKey = () => {
     return user ? `viewedArtists_${user.id}` : 'viewedArtists_guest';
@@ -68,9 +73,59 @@ export default function SearchScreen() {
       setIsLoading(true);
       const { artists, error } = await searchArtists(searchQuery);
       if (error) throw error;
+      console.log('Artists found:', artists);
       setSearchResults(artists || []);
     } catch (error) {
       console.error('Error searching artists:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required to fetch your current location.');
+        return null;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      return {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      };
+    } catch (error) {
+      console.error('Error fetching location:', error);
+      Alert.alert('Error', 'Failed to fetch location. Please try again.');
+      return null;
+    }
+  };
+
+  const handleSearchByDistance = async () => {
+    if (!distance || isNaN(Number(distance))) {
+      Alert.alert('Error', 'Please enter a valid distance.');
+      return;
+    }
+
+    if (!userLocation) {
+      const location = await getCurrentLocation();
+      if (!location) return;
+      setUserLocation(location);
+    }
+
+    try {
+      setIsLoading(true);
+      const { artists, error } = await searchArtistsByDistance( {
+        latitude: userLocation?.latitude!,
+        longitude: userLocation?.longitude!,
+        distance: Number(distance),
+      });
+      if (error) throw error;
+      console.log('Artists found:', artists);
+      setSearchResults(artists || []);
+    } catch (error) {
+      console.error('Error searching artists by distance:', error);
     } finally {
       setIsLoading(false);
     }
@@ -283,6 +338,45 @@ export default function SearchScreen() {
       maxWidth: SCREEN_WIDTH * 0.7,
       lineHeight: 22,
     },
+    distanceButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 10,
+    },
+    distanceButtonText: {
+      marginLeft: 5,
+      color: '#0066ff',
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    distanceInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 10,
+      paddingHorizontal: 20,
+    },
+    distanceInput: {
+      flex: 1,
+      backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+      borderRadius: 16,
+      paddingHorizontal: 15,
+      height: 50,
+      color: theme === 'dark' ? '#FFFFFF' : '#000000',
+    },
+    searchDistanceButton: {
+      marginLeft: 10,
+      backgroundColor: '#0066ff',
+      borderRadius: 16,
+      paddingHorizontal: 20,
+      height: 50,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    searchDistanceButtonText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '600',
+    },
   });
 
   return (
@@ -308,6 +402,7 @@ export default function SearchScreen() {
               placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
               value={searchQuery}
               onChangeText={setSearchQuery}
+              onFocus={() => setShowDistanceInput(false)} // Hide distance input when search field is focused
               onSubmitEditing={handleSearch}
               returnKeyType="search"
             />
@@ -321,7 +416,32 @@ export default function SearchScreen() {
               </TouchableOpacity>
             )}
           </View>
+          <TouchableOpacity 
+            style={styles.distanceButton} 
+            onPress={() => setShowDistanceInput(!showDistanceInput)}
+          >
+            <Ionicons name="location-outline" size={20} color="#0066ff" />
+            <Text style={styles.distanceButtonText}>Search by Distance</Text>
+          </TouchableOpacity>
         </View>
+        {showDistanceInput && (
+          <View style={styles.distanceInputContainer}>
+            <TextInput
+              style={styles.distanceInput}
+              placeholder="Enter distance (km)"
+              placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+              value={distance}
+              onChangeText={setDistance}
+              keyboardType="numeric"
+            />
+            <TouchableOpacity 
+              style={styles.searchDistanceButton} 
+              onPress={handleSearchByDistance}
+            >
+              <Text style={styles.searchDistanceButtonText}>Search</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </LinearGradient>
 
       {isLoading ? (
@@ -331,11 +451,11 @@ export default function SearchScreen() {
       ) : (
         <FlatList
           style={styles.artistList}
-          data={searchQuery ? searchResults : viewedArtists}
-          renderItem={searchQuery ? renderArtistItem : renderViewedArtistItem}
+          data={searchQuery || showDistanceInput ? searchResults : viewedArtists} // Adjusted condition
+          renderItem={searchQuery || showDistanceInput ? renderArtistItem : renderViewedArtistItem} // Adjusted condition
           keyExtractor={(item) => item.id}
           ListHeaderComponent={
-            !searchQuery && viewedArtists.length > 0 ? (
+            !searchQuery && !showDistanceInput && viewedArtists.length > 0 ? ( // Adjusted condition
               <Animated.View entering={FadeInUp}>
                 <Text style={styles.sectionTitle}>Recently Viewed</Text>
               </Animated.View>
@@ -344,13 +464,13 @@ export default function SearchScreen() {
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Ionicons 
-                name={searchQuery ? "search" : "time-outline"} 
+                name={searchQuery || showDistanceInput ? "search" : "time-outline"} // Adjusted condition
                 size={48} 
                 color={theme === 'dark' ? '#333333' : '#CCCCCC'} 
                 style={styles.emptyStateIcon}
               />
               <Text style={styles.emptyStateText}>
-                {searchQuery 
+                {searchQuery || showDistanceInput 
                   ? 'No artists found. Try a different search.' 
                   : 'No recently viewed artists'}
               </Text>
