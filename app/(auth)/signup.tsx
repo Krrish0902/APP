@@ -158,7 +158,7 @@ export default function SignUp() {
           }]}>
             <View style={styles.header}>
               <Image 
-                source={require('../../assets/images/signup-art.png')} 
+                source={require('../../assets/images/signupart.png')} 
                 style={styles.illustration}
                 resizeMode="contain"
               />

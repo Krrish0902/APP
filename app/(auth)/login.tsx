@@ -72,7 +72,7 @@ export default function Login() {
         }]}>
           <View style={styles.header}>
             <Image 
-              source={require('../../assets/images/login-art.png')} 
+              source={require('../../assets/images/loginart.png')} 
               style={styles.illustration}
               resizeMode="contain"
             />
