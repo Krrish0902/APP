@@ -173,7 +173,6 @@ export default function HomeScreen() {
         <Image
           source={{ uri: item.artist.avatar }}
           style={styles.avatar}
-          defaultSource={require('../../assets/images/default-avatar.png')}
         />
       </TouchableOpacity>
     </View>
