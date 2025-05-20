@@ -14,6 +14,7 @@ import { supabase } from '../../src/lib/supabase';
 import { decode } from 'base64-arraybuffer';
 import Constants from "expo-constants";
 import * as Location from 'expo-location';
+import { Svg, Circle, Path, Defs, LinearGradient as SVGLinearGradient, Stop } from 'react-native-svg';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -53,8 +54,12 @@ export default function ProfileScreen() {
       top: 0,
       left: 0,
       right: 0,
-      height: 120,
+      height: 170,
       zIndex: 1,
+    },
+    curveBackground: {
+      width: '100%',
+      height: 370,
     },
     header: {
       flexDirection: 'row',
@@ -63,15 +68,20 @@ export default function ProfileScreen() {
       paddingHorizontal: 20,
       paddingTop: 60,
       paddingBottom: 20,
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 5,
     },
     headerTitle: {
       fontSize: 24,
       fontWeight: 'bold',
-      color: theme === 'dark' ? '#FFFFFF' : '#000000',
+      color: '#FFFFFF',
     },
     signOutButton: {
       padding: 8,
-      backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+      backgroundColor: 'rgba(255,255,255,0.2)',
       borderRadius: 12,
     },
     content: {
@@ -79,9 +89,9 @@ export default function ProfileScreen() {
     },
     profileHeader: {
       alignItems: 'center',
-      paddingTop: 100,
       paddingHorizontal: 20,
       width: '100%',
+      marginTop: -200, // Pull content up into the curved area
     },
     avatarContainer: {
       position: 'relative',
@@ -268,6 +278,12 @@ export default function ProfileScreen() {
       color: theme === 'dark' ? '#FFFFFF' : '#000000',
       fontSize: 16,
       fontWeight: '600',
+    },
+    circleContainer: {
+      position: 'absolute',
+      zIndex: 0, // Above gradient background but below other components
+      top: 0,
+      left: 0,
     },
     themeToggleContainer: {
       position: 'absolute',
@@ -854,189 +870,202 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[theme === 'dark' ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.8)', 'transparent']}
-        style={styles.headerGradient}
-      >
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
-          <View style={styles.themeToggleContainer}>
-            <Switch
-              value={isDarkMode}
-              onValueChange={toggleTheme}
-              trackColor={{ false: '#E0E0E0', true: '#333333' }}
-              thumbColor={isDarkMode ? '#FFFFFF' : '#000000'}
-            />
-          </View>
-          <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
-            <Ionicons name="log-out-outline" size={24} color={theme === 'dark' ? '#FFFFFF' : '#000000'} />
-          </TouchableOpacity>
+      {/* Fixed header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Profile</Text>
+        <View style={styles.themeToggleContainer}>
+          <Switch
+            value={isDarkMode}
+            onValueChange={toggleTheme}
+            trackColor={{ false: '#E0E0E0', true: '#333333' }}
+            thumbColor={isDarkMode ? '#FFFFFF' : '#000000'}
+          />
         </View>
-      </LinearGradient>
+        <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
+          <Ionicons name="log-out-outline" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
 
       <FlatList
-        data={[{ key: 'profile' }, { key: 'videos' }]} // Use a data array to differentiate sections
+        data={[{ key: 'profile' }, { key: 'videos' }]}
         renderItem={({ item }) => {
           if (item.key === 'profile') {
             return (
-              <View style={styles.profileHeader}>
-                <TouchableOpacity 
-                  style={styles.avatarContainer}
-                  onPress={handleUpdateProfilePicture}
-                  onLongPress={handleLongPressAvatar}
-                  delayLongPress={500}
-                >
-                  <Image 
-                    source={{ 
-                      uri: (artist as any).profile_picture_url || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
-                    }}
-                    style={styles.avatar}
-                  />
-                  <View style={styles.onlineIndicator} />
-                </TouchableOpacity>
-                
-                {isEditing ? (
-                  <Animated.View 
-                    entering={FadeInUp} 
-                    exiting={FadeOutDown}
-                    style={styles.editForm}
+              <>
+                {/* Curved gradient background - now inside the scrollable area */}
+                <View style={styles.curveBackground}>
+                  <Svg height="300" width={SCREEN_WIDTH} viewBox={`0 0 ${SCREEN_WIDTH} 300`}>
+                    <Defs>
+                      <SVGLinearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <Stop offset="0" stopColor={theme === 'dark' ? '#2E1065' : '#2E1065'} />
+                        <Stop offset="1" stopColor={theme === 'dark' ? '#2596be' : '#76b5c5'} />
+                      </SVGLinearGradient>
+                    </Defs>
+                    <Path
+                      d={`M0 0 L${SCREEN_WIDTH} 0 L${SCREEN_WIDTH} 200 Q${SCREEN_WIDTH/2} 300 0 200 Z`}
+                      fill="url(#grad)"
+                    />
+                  </Svg>
+                </View>
+
+                <View style={styles.profileHeader}>
+                  <TouchableOpacity 
+                    style={styles.avatarContainer}
+                    onPress={handleUpdateProfilePicture}
+                    onLongPress={handleLongPressAvatar}
+                    delayLongPress={500}
                   >
-                    <View style={styles.formField}>
-                      <Text style={styles.formLabel}>Name</Text>
-                      <TextInput
-                        style={styles.formInput}
-                        value={editForm.name}
-                        onChangeText={(text) => setEditForm({...editForm, name: text})}
-                        placeholder="Your name"
-                        placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
-                      />
-                    </View>
-                    
-                    <View style={styles.formField}>
-                      <Text style={styles.formLabel}>Email</Text>
-                      <TextInput
-                        style={styles.formInput}
-                        value={editForm.email}
-                        onChangeText={(text) => setEditForm({...editForm, email: text})}
-                        placeholder="Your email"
-                        placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
-                        keyboardType="email-address"
-                      />
-                    </View>
-                    
-                    <View style={styles.formField}>
-                      <Text style={styles.formLabel}>Phone</Text>
-                      <TextInput
-                        style={styles.formInput}
-                        value={editForm.phone_num}
-                        onChangeText={(text) => setEditForm({...editForm, phone_num: text})}
-                        placeholder="Your phone number"
-                        placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
-                        keyboardType="phone-pad"
-                      />
-                    </View>
-                    
-                    <View style={styles.formField}>
-                      <Text style={styles.formLabel}>Location</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Image 
+                      source={{ 
+                        uri: (artist as any).profile_picture_url || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
+                      }}
+                      style={styles.avatar}
+                    />
+                    <View style={styles.onlineIndicator} />
+                  </TouchableOpacity>
+                  
+                  {isEditing ? (
+                    <Animated.View 
+                      entering={FadeInUp} 
+                      exiting={FadeOutDown}
+                      style={styles.editForm}
+                    >
+                      <View style={styles.formField}>
+                        <Text style={styles.formLabel}>Name</Text>
                         <TextInput
-                          style={[styles.formInput, { flex: 1 }]}
-                          value={editForm.location}
-                          onChangeText={(text) => setEditForm({ ...editForm, location: text })}
-                          placeholder="Your location"
+                          style={styles.formInput}
+                          value={editForm.name}
+                          onChangeText={(text) => setEditForm({...editForm, name: text})}
+                          placeholder="Your name"
                           placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
                         />
-                        {editForm.location.length > 0 && (
-                          <TouchableOpacity 
-                            style={styles.locationButton} 
-                            onPress={handleLocationButtonPress}
-                            disabled={isFetchingLocation}
-                          >
-                            {isFetchingLocation ? (
-                              <ActivityIndicator size="small" color="#0066ff" />
-                            ) : (
-                              <Ionicons name="locate-outline" size={20} color="#0066ff" />
-                            )}
-                          </TouchableOpacity>
-                        )}
                       </View>
-                    </View>
-                    
-                    <View style={styles.formField}>
-                      <Text style={styles.formLabel}>Bio</Text>
-                      <TextInput
-                        style={[styles.formInput, styles.bioInput]}
-                        value={editForm.bio}
-                        onChangeText={(text) => setEditForm({...editForm, bio: text})}
-                        placeholder="Tell us about yourself"
-                        placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
-                        multiline
-                      />
-                    </View>
-                    
-                    <View style={styles.editButtons}>
-                      <TouchableOpacity 
-                        style={[styles.editButton, styles.cancelButton]} 
-                        onPress={handleCancelEdit}
-                      >
-                        <Text style={styles.cancelButtonText}>Cancel</Text>
-                      </TouchableOpacity>
                       
-                      <TouchableOpacity 
-                        style={[styles.editButton, styles.saveButton]} 
-                        onPress={handleSaveProfile}
-                        disabled={isLoading}
-                      >
-                        {isLoading ? (
-                          <ActivityIndicator size="small" color="#fff" />
-                        ) : (
-                          <Text style={styles.saveButtonText}>Save</Text>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  </Animated.View>
-                ) : (
-                  <Animated.View 
-                    entering={FadeInUp}
-                    style={styles.profileInfo}
-                  >
-                    <View style={styles.usernameContainer}>
-                      <Text style={styles.username} numberOfLines={1}>@{artist.user_id}</Text>
-                    </View>
-                    <Text style={styles.fullName}>{artist.name || 'No Name Set'}</Text>
-                    
-                    {artist.bio ? (
-                      <Text style={styles.bio}>{artist.bio}</Text>
-                    ) : (
-                      <Text style={styles.bio}>No bio added yet</Text>
-                    )}
-
-                    <View style={styles.buttonContainer}>
-                      <TouchableOpacity 
-                        style={styles.contactButton}
-                        onPress={() => setShowContact(!showContact)}
-                      >
-                        <Ionicons 
-                          name={showContact ? "chevron-up-outline" : "chevron-down-outline"} 
-                          size={20} 
-                          color="#0066ff" 
+                      <View style={styles.formField}>
+                        <Text style={styles.formLabel}>Email</Text>
+                        <TextInput
+                          style={styles.formInput}
+                          value={editForm.email}
+                          onChangeText={(text) => setEditForm({...editForm, email: text})}
+                          placeholder="Your email"
+                          placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+                          keyboardType="email-address"
                         />
-                        <Text style={styles.contactButtonText}>Contact Info</Text>
-                      </TouchableOpacity>
+                      </View>
+                      
+                      <View style={styles.formField}>
+                        <Text style={styles.formLabel}>Phone</Text>
+                        <TextInput
+                          style={styles.formInput}
+                          value={editForm.phone_num}
+                          onChangeText={(text) => setEditForm({...editForm, phone_num: text})}
+                          placeholder="Your phone number"
+                          placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+                          keyboardType="phone-pad"
+                        />
+                      </View>
+                      
+                      <View style={styles.formField}>
+                        <Text style={styles.formLabel}>Location</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <TextInput
+                            style={[styles.formInput, { flex: 1 }]}
+                            value={editForm.location}
+                            onChangeText={(text) => setEditForm({ ...editForm, location: text })}
+                            placeholder="Your location"
+                            placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+                          />
+                          {editForm.location.length > 0 && (
+                            <TouchableOpacity 
+                              style={styles.locationButton} 
+                              onPress={handleLocationButtonPress}
+                              disabled={isFetchingLocation}
+                            >
+                              {isFetchingLocation ? (
+                                <ActivityIndicator size="small" color="#0066ff" />
+                              ) : (
+                                <Ionicons name="locate-outline" size={20} color="#0066ff" />
+                              )}
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </View>
+                      
+                      <View style={styles.formField}>
+                        <Text style={styles.formLabel}>Bio</Text>
+                        <TextInput
+                          style={[styles.formInput, styles.bioInput]}
+                          value={editForm.bio}
+                          onChangeText={(text) => setEditForm({...editForm, bio: text})}
+                          placeholder="Tell us about yourself"
+                          placeholderTextColor={theme === 'dark' ? '#666666' : '#999999'}
+                          multiline
+                        />
+                      </View>
+                      
+                      <View style={styles.editButtons}>
+                        <TouchableOpacity 
+                          style={[styles.editButton, styles.cancelButton]} 
+                          onPress={handleCancelEdit}
+                        >
+                          <Text style={styles.cancelButtonText}>Cancel</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity 
+                          style={[styles.editButton, styles.saveButton]} 
+                          onPress={handleSaveProfile}
+                          disabled={isLoading}
+                        >
+                          {isLoading ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                          ) : (
+                            <Text style={styles.saveButtonText}>Save</Text>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </Animated.View>
+                  ) : (
+                    <Animated.View 
+                      entering={FadeInUp}
+                      style={styles.profileInfo}
+                    >                   
+                      <Text style={styles.fullName}>{artist.name || 'No Name Set'}</Text>
+                      <View style={styles.usernameContainer}>
+                        <Text style={styles.username} numberOfLines={1}>@{artist.user_id}</Text>
+                      </View>
+                      {artist.bio ? (
+                        <Text style={styles.bio}>{artist.bio}</Text>
+                      ) : (
+                        <Text style={styles.bio}>No bio added yet</Text>
+                      )}
 
-                      <TouchableOpacity 
-                        style={styles.editProfileButton}
-                        onPress={handleEditProfile}
-                      >
-                        <Ionicons name="create-outline" size={20} color="#0066ff" style={styles.editIcon} />
-                        <Text style={styles.editProfileText}>Edit Profile</Text>
-                      </TouchableOpacity>
-                    </View>
+                      <View style={styles.buttonContainer}>
+                        <TouchableOpacity 
+                          style={styles.contactButton}
+                          onPress={() => setShowContact(!showContact)}
+                        >
+                          <Ionicons 
+                            name={showContact ? "chevron-up-outline" : "chevron-down-outline"} 
+                            size={20} 
+                            color="#0066ff" 
+                          />
+                          <Text style={styles.contactButtonText}>Contact Info</Text>
+                        </TouchableOpacity>
 
-                    {renderContactInfo()}
-                  </Animated.View>
-                )}
-              </View>
+                        <TouchableOpacity 
+                          style={styles.editProfileButton}
+                          onPress={handleEditProfile}
+                        >
+                          <Ionicons name="create-outline" size={20} color="#0066ff" style={styles.editIcon} />
+                          <Text style={styles.editProfileText}>Edit Profile</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {renderContactInfo()}
+                    </Animated.View>
+                  )}
+                </View>
+              </>
             );
           } else if (item.key === 'videos') {
             return renderVideoSection();
@@ -1046,5 +1075,6 @@ export default function ProfileScreen() {
         keyExtractor={(item) => item.key}
       />
     </View>
+  
   );
 }

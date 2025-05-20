@@ -157,7 +157,11 @@ export default function SignUp() {
             backgroundColor:  '#FFFFFF',
           }]}>
             <View style={styles.header}>
-              
+            <Image 
+              source={require('../../assets/images/signupart.png')} 
+              style={styles.illustration}
+              resizeMode="contain"
+            />
               <Text style={headerTitleStyle}>BEHANCE</Text> 
               
               <Text style={[styles.subtitle, {

@@ -71,7 +71,11 @@ export default function Login() {
           backgroundColor:  '#FFFFFF',
         }]}>
           <View style={styles.header}>
-            
+          <Image 
+              source={require('../../assets/images/loginart.png')} 
+              style={styles.illustration}
+              resizeMode="contain"
+            />
             <Text style={titleStyle} numberOfLines={1} adjustsFontSizeToFit>
               Welcome Back
             </Text>

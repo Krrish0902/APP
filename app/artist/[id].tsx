@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { Video, ResizeMode } from 'expo-av';
 import { useAuth } from '../../src/context/AuthContext';
+import { Svg, Path, Defs, LinearGradient as SVGLinearGradient, Stop } from 'react-native-svg';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -22,6 +23,7 @@ interface Artist {
   user_id: string;
   latitude?: number;
   longitude?: number;
+  location?: string;
 }
 
 interface video {
@@ -121,111 +123,131 @@ export default function ArtistProfileScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme === 'dark' ? '#000' : '#fff' }]}>
       <Stack.Screen options={{ headerShown: false }} />
+      
+      {/* Fixed header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#0066ff" />
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Artist Profile</Text>
       </View>
 
       <FlatList
-        data={[{ key: 'profile' }, { key: 'videos' }]} // Use a data array to differentiate sections
+        data={[{ key: 'profile' }, { key: 'videos' }]}
         renderItem={({ item }) => {
           if (item.key === 'profile') {
             return (
-              <View style={styles.profileHeader}>
-                <TouchableOpacity style={styles.avatarContainer}>
-                  <Image 
-                    source={{ 
-                      uri: artist.profile_picture_url || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
-                    }}
-                    style={styles.avatar}
-                  />
-                  <View style={styles.onlineIndicator} />
-                </TouchableOpacity>
-                
-                <Animated.View entering={FadeInUp} style={styles.profileInfo}>
-                  <View style={styles.usernameContainer}>
-                    <Text style={styles.username} numberOfLines={1}>@{artist.user_id}</Text>
-                  </View>
-                  
-                  <View style={styles.nameContainer}>
-                    <Text style={[styles.name, { color: theme === 'dark' ? '#fff' : '#000' }]}>
-                      {artist.name}
-                    </Text>
-                    {artist.is_verified && (
-                      <Ionicons name="checkmark-circle" size={24} color="#0066ff" style={styles.verifiedIcon} />
-                    )}
-                  </View>
-
-                  {artist.bio ? (
-                    <Text style={styles.bio}>{artist.bio}</Text>
-                  ) : (
-                    <Text style={styles.bio}>No bio added yet</Text>
-                  )}
-
-                  <TouchableOpacity 
-                    style={styles.contactButton}
-                    onPress={() => setShowContact(!showContact)}
-                  >
-                    <Ionicons 
-                      name={showContact ? "chevron-up-outline" : "chevron-down-outline"} 
-                      size={20} 
-                      color="#0066ff" 
+              <>
+                {/* Curved gradient background - inside the scrollable area */}
+                <View style={styles.curveBackground}>
+                  <Svg height="300" width={SCREEN_WIDTH} viewBox={`0 0 ${SCREEN_WIDTH} 300`}>
+                    <Defs>
+                      <SVGLinearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <Stop offset="0" stopColor={theme === 'dark' ? '#2E1065' : '#2E1065'} />
+                        <Stop offset="1" stopColor={theme === 'dark' ? '#2596be' : '#76b5c5'} />
+                      </SVGLinearGradient>
+                    </Defs>
+                    <Path
+                      d={`M0 0 L${SCREEN_WIDTH} 0 L${SCREEN_WIDTH} 200 Q${SCREEN_WIDTH/2} 300 0 200 Z`}
+                      fill="url(#grad)"
                     />
-                    <Text style={styles.contactButtonText}>Contact Info</Text>
+                  </Svg>
+                </View>
+                
+                <View style={styles.profileHeader}>
+                  <TouchableOpacity style={styles.avatarContainer}>
+                    <Image 
+                      source={{ 
+                        uri: artist.profile_picture_url || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
+                      }}
+                      style={styles.avatar}
+                    />
+                    <View style={styles.onlineIndicator} />
                   </TouchableOpacity>
+                  
+                  <Animated.View entering={FadeInUp} style={styles.profileInfo}>
+                    <View style={styles.usernameContainer}>
+                      <Text style={styles.username} numberOfLines={1}>@{artist.user_id}</Text>
+                    </View>
+                    
+                    <View style={styles.nameContainer}>
+                      <Text style={[styles.name, { color: theme === 'dark' ? '#fff' : '#000' }]}>
+                        {artist.name}
+                      </Text>
+                      {artist.is_verified && (
+                        <Ionicons name="checkmark-circle" size={24} color="#0066ff" style={styles.verifiedIcon} />
+                      )}
+                    </View>
 
-                  {showContact && (
-                    <Animated.View 
-                      entering={FadeInUp}
-                      style={styles.contactInfo}
+                    {artist.bio ? (
+                      <Text style={styles.bio}>{artist.bio}</Text>
+                    ) : (
+                      <Text style={styles.bio}>No bio added yet</Text>
+                    )}
+
+                    <TouchableOpacity 
+                      style={styles.contactButton}
+                      onPress={() => setShowContact(!showContact)}
                     >
-                      <View style={styles.contactItem}>
-                        <View style={styles.contactIcon}>
-                          <Ionicons name="mail-outline" size={24} color="#0066ff" />
-                        </View>
-                        <View>
-                          <Text style={[styles.contactText, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
-                            {artist.email || 'No Email'}
-                          </Text>
-                          <Text style={styles.contactLabel}>Email</Text>
-                        </View>
-                      </View>
+                      <Ionicons 
+                        name={showContact ? "chevron-up-outline" : "chevron-down-outline"} 
+                        size={20} 
+                        color="#0066ff" 
+                      />
+                      <Text style={styles.contactButtonText}>Contact Info</Text>
+                    </TouchableOpacity>
 
-                      <View style={styles.contactItem}>
-                        <View style={styles.contactIcon}>
-                          <Ionicons name="call-outline" size={24} color="#0066ff" />
+                    {showContact && (
+                      <Animated.View 
+                        entering={FadeInUp}
+                        style={styles.contactInfo}
+                      >
+                        <View style={styles.contactItem}>
+                          <View style={styles.contactIcon}>
+                            <Ionicons name="mail-outline" size={24} color="#0066ff" />
+                          </View>
+                          <View>
+                            <Text style={[styles.contactText, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
+                              {artist.email || 'No Email'}
+                            </Text>
+                            <Text style={styles.contactLabel}>Email</Text>
+                          </View>
                         </View>
-                        <View>
-                          <Text style={[styles.contactText, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
-                            {artist.phone_num || 'No Phone'}
-                          </Text>
-                          <Text style={styles.contactLabel}>Phone</Text>
-                        </View>
-                      </View>
 
-                      <View style={styles.contactItem_distance}>
-                        <View style={styles.contactIcon}>
-                          <Ionicons name="map" size={24} color="#0066ff" />
+                        <View style={styles.contactItem}>
+                          <View style={styles.contactIcon}>
+                            <Ionicons name="call-outline" size={24} color="#0066ff" />
+                          </View>
+                          <View>
+                            <Text style={[styles.contactText, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
+                              {artist.phone_num || 'No Phone'}
+                            </Text>
+                            <Text style={styles.contactLabel}>Phone</Text>
+                          </View>
                         </View>
-                        <View>
-                          <Text style={[styles.contactText, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
-                            {artist.location || 'No Location'}
-                          </Text>
-                          {distance !== null && (
-                          <Text style={[styles.contactText_distance, { color: theme === 'dark' ? '#fff' : '#000' }]}>
-                           {distance.toFixed(2)} km away
-                          </Text>
-                          )}
-                          <Text style={styles.contactLabel}>Location</Text>
-                        </View>
-                      </View>
-                    </Animated.View>
-                  )}
 
-                </Animated.View>
-              </View>
+                        <View style={styles.contactItem_distance}>
+                          <View style={styles.contactIcon}>
+                            <Ionicons name="map" size={24} color="#0066ff" />
+                          </View>
+                          <View>
+                            <Text style={[styles.contactText, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
+                              {artist.location || 'No Location'}
+                            </Text>
+                            {distance !== null && (
+                            <Text style={[styles.contactText_distance, { color: theme === 'dark' ? '#fff' : '#000' }]}>
+                             {distance.toFixed(2)} km away
+                            </Text>
+                            )}
+                            <Text style={styles.contactLabel}>Location</Text>
+                          </View>
+                        </View>
+                      </Animated.View>
+                    )}
+
+                  </Animated.View>
+                </View>
+              </>
             );
           } else if (item.key === 'videos') {
             return (
@@ -279,6 +301,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  curveBackground: {
+    width: '100%',
+    height: 300,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -286,26 +312,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 40,
     paddingBottom: 20,
-    backgroundColor: 'transparent',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 5,
   },
   backButton: {
     padding: 8,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#0066ff',
+    color: '#FFFFFF',
+    marginLeft: 20,
   },
   content: {
     flex: 1,
   },
   profileHeader: {
     alignItems: 'center',
-    paddingTop: 20,
     paddingHorizontal: 20,
     width: '100%',
+    marginTop: -130,
   },
   avatarContainer: {
     position: 'relative',
