@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Dimensions, Switch, Platform, FlatList } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Dimensions, Switch, Platform, FlatList, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
@@ -27,6 +27,9 @@ export default function ProfileScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [showContact, setShowContact] = useState(false);
   const [videos, setVideos] = useState<Array<{ id: string; file_path: string; created_at: string }>>([]);
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [videoModalVisible, setVideoModalVisible] = useState(false);
+  const videoRef = useRef(null);
   const [editForm, setEditForm] = useState({
     name: '',
     bio: '',
@@ -465,6 +468,16 @@ export default function ProfileScreen() {
       console.error('Error fetching videos:', error);
     }
   };
+  
+  const handleVideoPress = (videoPath: string) => {
+    setSelectedVideo(videoPath);
+    setVideoModalVisible(true);
+  };
+
+  const closeVideoModal = () => {
+    setVideoModalVisible(false);
+    setSelectedVideo(null);
+  };
  
 
   const handleUploadVideo = async () => {
@@ -792,20 +805,22 @@ export default function ProfileScreen() {
         <FlatList
           data={videos}
           renderItem={({ item }) => (
-            <View style={styles.videoCard}>
+            <TouchableOpacity 
+              style={styles.videoCard}
+              onPress={() => handleVideoPress(supabase.storage.from('artist-media').getPublicUrl(item.file_path).data.publicUrl)}
+            >
               <View style={{ position: 'relative' }}>
                 <Video
                   source={{ uri: supabase.storage.from('artist-media').getPublicUrl(item.file_path).data.publicUrl }}
                   style={styles.videoThumbnail}
                   resizeMode={ResizeMode.COVER}
-                  useNativeControls
                   isLooping
                 />
                 <Text style={[styles.videoDate, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
                   {new Date(item.created_at).toLocaleDateString()}
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
           )}
           keyExtractor={(item) => item.id}
           numColumns={2}
@@ -1074,6 +1089,51 @@ export default function ProfileScreen() {
         }}
         keyExtractor={(item) => item.key}
       />
+      {/* Video Modal */}
+      <Modal
+        visible={videoModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeVideoModal}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <TouchableOpacity 
+            style={{
+              position: 'absolute',
+              top: 50,
+              right: 20,
+              backgroundColor: theme === 'dark' ? '#FFFFFF' : '#000000',
+              borderRadius: 20,
+              width: 40,
+              height: 40,
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+            }} 
+            onPress={closeVideoModal}
+          >
+            <Ionicons name="close" size={24} color= {theme === 'dark' ? '#000000' : '#FFFFFF'} />
+          </TouchableOpacity>
+          {selectedVideo && (
+            <Video
+              ref={videoRef}
+              source={{ uri: selectedVideo }}
+              style={{
+                width: SCREEN_WIDTH,
+                height: SCREEN_WIDTH * 1.5,
+              }}
+              resizeMode={ResizeMode.CONTAIN}
+              shouldPlay
+              isLooping={true}
+            />
+          )}
+        </View>
+      </Modal>
     </View>
   
   );

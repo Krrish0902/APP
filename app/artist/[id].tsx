@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, ActivityIndicator, TouchableOpacity, Dimensions, FlatList } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, Image, ScrollView, ActivityIndicator, TouchableOpacity, Dimensions, FlatList, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
 import { useTheme } from '../../src/context/ThemeContext';
@@ -39,6 +39,9 @@ export default function ArtistProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showContact, setShowContact] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [videoModalVisible, setVideoModalVisible] = useState(false);
+  const videoRef = useRef(null);
   const { theme } = useTheme();
   const router = useRouter();
   const { userCoordinates } = useAuth(); // Access user coordinates
@@ -101,6 +104,16 @@ export default function ArtistProfileScreen() {
   const distance = userCoordinates && artist?.latitude && artist?.longitude
     ? calculateDistance(userCoordinates.latitude, userCoordinates.longitude, artist.latitude, artist.longitude)
     : null;
+    
+  const handleVideoPress = (videoPath: string) => {
+    setSelectedVideo(videoPath);
+    setVideoModalVisible(true);
+  };
+
+  const closeVideoModal = () => {
+    setVideoModalVisible(false);
+    setSelectedVideo(null);
+  };
 
   if (isLoading) {
     return (
@@ -262,20 +275,28 @@ export default function ArtistProfileScreen() {
                   <FlatList
                     data={videos}
                     renderItem={({ item }) => (
-                      <View style={styles.videoCard}>
+                      <TouchableOpacity 
+                        style={styles.videoCard}
+                        onPress={() => handleVideoPress(supabase.storage.from('artist-media').getPublicUrl(item.file_path).data.publicUrl)}
+                      >
                         <View style={{ position: 'relative' }}>
                           <Video
                             source={{ uri: supabase.storage.from('artist-media').getPublicUrl(item.file_path).data.publicUrl }}
                             style={styles.videoThumbnail}
                             resizeMode={ResizeMode.COVER}
-                            useNativeControls
                             isLooping
                           />
-                          <Text style={[styles.videoDate, { color: theme === 'dark' ? '#FFFFFF' : '#000000' }]}>
+                          <Text style={[
+                            styles.videoDate, 
+                            { 
+                               color: theme === 'dark' ? '#FFFFFF' : '#000000',
+                              backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.9)'
+                            }
+                          ]}>
                             {new Date(item.created_at).toLocaleDateString()}
                           </Text>
                         </View>
-                      </View>
+                      </TouchableOpacity>
                     )}
                     keyExtractor={(item) => item.id}
                     numColumns={2}
@@ -293,6 +314,52 @@ export default function ArtistProfileScreen() {
         }}
         keyExtractor={(item) => item.key}
       />
+      
+      {/* Video Modal */}
+      <Modal
+        visible={videoModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeVideoModal}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <TouchableOpacity 
+            style={{
+              position: 'absolute',
+              top: 50,
+              right: 20,
+              backgroundColor: theme === 'dark' ? '#FFFFFF' : '#000000',
+              borderRadius: 20,
+              width: 40,
+              height: 40,
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+            }} 
+            onPress={closeVideoModal}
+          >
+            <Ionicons name="close" size={24} color={theme === 'dark' ? '#000000' : '#FFFFFF'} />
+          </TouchableOpacity>
+          {selectedVideo && (
+            <Video
+              ref={videoRef}
+              source={{ uri: selectedVideo }}
+              style={{
+                width: SCREEN_WIDTH,
+                height: SCREEN_WIDTH * 1.5,
+              }}
+              resizeMode={ResizeMode.CONTAIN}
+              shouldPlay
+              isLooping={true}
+            />
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -493,7 +560,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     padding: 8,
     paddingTop: 4,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     position: 'absolute',
     bottom: 0,
     left: 0,

@@ -219,6 +219,7 @@ export default function SearchScreen() {
     header: {
       paddingHorizontal: 20,
       marginBottom: 15,
+      marginTop: 95,
     },
     headerTitle: {
       fontSize: 28,
