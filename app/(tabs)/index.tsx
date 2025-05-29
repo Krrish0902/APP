@@ -1,6 +1,6 @@
 // HomeScreen.tsx
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions, StatusBar, ViewToken, ListRenderItemInfo, Platform, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, StatusBar, ViewToken, ActivityIndicator, ListRenderItemInfo, Platform, TouchableOpacity, Image } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { FlatList } from 'react-native-gesture-handler';
 import VideoPost from '../../components/VideoPost';
@@ -68,6 +68,12 @@ export default function HomeScreen() {
   const [isMuted, setIsMuted] = useState(true);
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const VIDEOS_PER_PAGE = 5;
+  const [refreshing, setRefreshing] = useState(false);
+  const [preloadedVideos, setPreloadedVideos] = useState<Set<string>>(new Set());
 
   const CONTENT_HEIGHT = getContentHeight(insets);
 
@@ -75,10 +81,20 @@ export default function HomeScreen() {
     setIsMuted(prev => !prev);
   }, []);
 
+  const handleRefresh = useCallback(async () => {
+  setRefreshing(true);
+  setPage(0);
+  await fetchVideos(0);
+  setRefreshing(false);
+}, []);
+
   // Fetch videos from the posts table
-  const fetchVideos = async () => {
+  const fetchVideos = async (pageNumber: number = 0) => {
     try {
       setIsLoading(true);
+      const from = pageNumber * VIDEOS_PER_PAGE;
+      const to = from + VIDEOS_PER_PAGE - 1;
+
       const { data, error } = await supabase
         .from('posts')
         .select(`
@@ -92,7 +108,8 @@ export default function HomeScreen() {
           )
         `)
         .eq('media_type', 'video')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
 
@@ -105,6 +122,7 @@ export default function HomeScreen() {
         
         const publicUrl = supabase.storage.from('artist-media').getPublicUrl(post.file_path).data.publicUrl;
         
+        
         return {
           id: post.id,
           url: publicUrl,
@@ -116,12 +134,15 @@ export default function HomeScreen() {
         };
       });
 
-      setVideos(formattedVideos);
+      setVideos(prev => pageNumber === 0 ? formattedVideos : [...prev, ...formattedVideos]);
+      setHasMore(data.length === VIDEOS_PER_PAGE);
+      
     } catch (error) {
       console.error('Error fetching videos:', error);
       setError('Failed to load videos');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
@@ -136,12 +157,63 @@ export default function HomeScreen() {
     waitForInteraction: true
   });
 
+  const ErrorView = ({ onRetry }: { onRetry: () => void }) => (
+  <View style={[styles.container, styles.errorContainer]}>
+    <Text style={styles.errorText}>{error}</Text>
+    <TouchableOpacity 
+      style={styles.retryButton} 
+      onPress={() => {
+        setError(null);
+        onRetry();
+      }}
+    >
+      <Text style={styles.retryText}>Try Again</Text>
+    </TouchableOpacity>
+  </View>
+);
+
+  const preloadNextVideo = useCallback((nextIndex: number) => {
+      if (videos[nextIndex]?.url && !preloadedVideos.has(videos[nextIndex].id)) {
+        // Preload avatar
+        Image.prefetch(videos[nextIndex].artist.avatar);
+        setPreloadedVideos(prev => new Set([...prev, videos[nextIndex].id]));
+      }
+  }, [videos, preloadedVideos]);
+
+  useEffect(() => {
+  if (currentIndex < videos.length - 1) {
+    preloadNextVideo(currentIndex + 1);
+  }
+}, [currentIndex, videos]);
+
+  const cleanupInactiveVideos = useCallback((activeIndex: number) => {
+  const keepIndices = [activeIndex - 1, activeIndex, activeIndex + 1];
+  videos.forEach((video, index) => {
+    if (!keepIndices.includes(index) && preloadedVideos.has(video.id)) {
+      setPreloadedVideos(prev => {
+        const next = new Set(prev);
+        next.delete(video.id);
+        return next;
+      });
+    }
+  });
+}, [videos, preloadedVideos]);
+
+  const handleLoadMore = useCallback(() => {
+    if (!isLoadingMore && hasMore) {
+      setIsLoadingMore(true);
+      setPage(prev => prev + 1);
+      fetchVideos(page + 1);
+    }
+  }, [isLoadingMore, hasMore, page]);
+
   const onViewableItemsChanged = useCallback(({ viewableItems }: ViewableItemsChanged) => {
     if (viewableItems.length > 0) {
       const newIndex = viewableItems[0].index ?? 0;
       setCurrentIndex(newIndex);
+      cleanupInactiveVideos(newIndex);
     }
-  }, []);
+  }, [cleanupInactiveVideos]);
 
   const handleVideoError = useCallback((videoId: string, error: string) => {
     console.error(`Error playing video ${videoId}:`, error);
@@ -197,12 +269,8 @@ export default function HomeScreen() {
   }
 
   if (error) {
-    return (
-      <View style={[styles.container, styles.errorContainer]}>
-        <Text style={styles.errorText}>{error}</Text>
-      </View>
-    );
-  }
+  return <ErrorView onRetry={() => fetchVideos(page)} />;
+}
 
   return (
     <View style={styles.container}>
@@ -235,6 +303,17 @@ export default function HomeScreen() {
           contentContainerStyle={{
             height: videos.length * SCREEN_HEIGHT,
           }}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={() => (
+            isLoadingMore ? (
+              <View style={styles.loadingMore}>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              </View>
+            ) : null
+          )}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
         />
       </View>
     </View>
@@ -259,6 +338,16 @@ const styles = StyleSheet.create({
     zIndex: 10,
     paddingHorizontal: 20,
     alignItems: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#FFFFFF',
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  retryText: {
+    color: '#000',
+    fontSize: 16,
   },
   headerTitle: {
     fontSize: 24,
@@ -297,5 +386,9 @@ const styles = StyleSheet.create({
     borderRadius: 35,
     borderWidth: 2,
     borderColor: '#fff',
+  },
+  loadingMore: {
+    paddingVertical: 20,
+    alignItems: 'center'
   },
 });

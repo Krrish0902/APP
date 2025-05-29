@@ -116,11 +116,23 @@ export default function ArtistProfileScreen() {
   };
 
   if (isLoading) {
-    return (
-      <View style={[styles.container, { backgroundColor: theme === 'dark' ? '#000' : '#fff' }]}>
+  return (
+    <View style={[styles.container, { backgroundColor: theme === 'dark' ? '#000' : '#fff' }]}>
+      <Stack.Screen options={{ headerShown: false }} />
+      
+      {/* Fixed header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Artist Profile</Text>
+      </View>
+      
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0066ff" />
       </View>
-    );
+    </View>
+  );
   }
 
   if (error || !artist) {
@@ -395,6 +407,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginLeft: 20,
+  },
+  loadingContainer: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
   },
   content: {
     flex: 1,

@@ -39,3 +39,5 @@ yarn-error.*
 
 errors.txt
 features.txt
+
+scripts/

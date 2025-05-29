@@ -1,35 +1,44 @@
 {
-    "cli": {
-      "version": ">= 5.9.1",
-      "appVersionSource": "remote"
-    },
-    "build": {
-      "development": {
-        "developmentClient": true,
-        "distribution": "internal",
-        "android": {
-          "gradleCommand": ":app:assembleDebug"
-        },
-        "env": {
+  "cli": {
+    "version": ">= 5.9.1",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "gradleCommand": ":app:assembleDebug"
+      },
+      "env": {
         "database_url": "YOUR_SUPABASE_URL",
         "database_key": "YOUR_SUPABASE_ANON_KEY",
         "YOUR_GOOGLE_MAPS_API_KEY": "YOUR_GOOGLE_MAPS_API_KEY"
       }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
       },
-      "preview": {
-        "distribution": "internal",
-        "android": {
-          "buildType": "apk",
-          "gradleCommand": ":app:assembleRelease"
-        }
-      },
-      "production": {
-        "android": {
-          "buildType": "app-bundle"
-        }
+      "image": {
+        "androidSdkVersion": "33.0.0"
       }
     },
-    "submit": {
-      "production": {}
+    "production": {
+      "android": {
+        "buildType": "app-bundle",
+        "image": {
+          "androidSdkVersion": "33.0.0"
+        },
+        "env": {
+          "ANDROID_NDK_HOME": "/opt/android-ndk"
+        }
+      }
     }
+  },
+  "submit": {
+    "production": {}
   }
+}
