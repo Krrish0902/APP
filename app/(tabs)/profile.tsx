@@ -909,7 +909,7 @@ export default function ProfileScreen() {
               <>
                 {/* Curved gradient background - now inside the scrollable area */}
                 <View style={styles.curveBackground}>
-                  <Svg height="300" width={SCREEN_WIDTH} viewBox={`0 0 ${SCREEN_WIDTH} 300`}>
+                  <Svg height="300" width={SCREEN_WIDTH+1} viewBox={`0 0 ${SCREEN_WIDTH} 300`}>
                     <Defs>
                       <SVGLinearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
                         <Stop offset="0" stopColor={theme === 'dark' ? '#2E1065' : '#2E1065'} />

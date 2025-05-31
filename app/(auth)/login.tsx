@@ -39,7 +39,7 @@ export default function Login() {
       }
 
       if (data) {
-        router.replace('/(tabs)');
+        router.replace('/(tabs) ');
       }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'An unexpected error occurred');

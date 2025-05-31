@@ -21,20 +21,11 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease"
-      },
-      "image": {
-        "androidSdkVersion": "33.0.0"
       }
     },
     "production": {
       "android": {
-        "buildType": "app-bundle",
-        "image": {
-          "androidSdkVersion": "33.0.0"
-        },
-        "env": {
-          "ANDROID_NDK_HOME": "/opt/android-ndk"
-        }
+        "buildType": "app-bundle"
       }
     }
   },

@@ -57,6 +57,7 @@ interface Video {
 }
 
 export default function HomeScreen() {
+
   // All hooks must be at the top level
   const [fontsLoaded] = useFonts({
     'Meddon': require('../../assets/fonts/DancingScript-Bold.ttf'),
@@ -179,6 +180,7 @@ export default function HomeScreen() {
         setPreloadedVideos(prev => new Set([...prev, videos[nextIndex].id]));
       }
   }, [videos, preloadedVideos]);
+
 
   useEffect(() => {
   if (currentIndex < videos.length - 1) {

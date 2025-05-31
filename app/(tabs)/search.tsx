@@ -73,7 +73,6 @@ export default function SearchScreen() {
       setIsLoading(true);
       const { artists, error } = await searchArtists(searchQuery);
       if (error) throw error;
-      console.log('Artists found:', artists);
       setSearchResults(artists || []);
     } catch (error) {
       console.error('Error searching artists:', error);
@@ -122,7 +121,6 @@ export default function SearchScreen() {
         distance: Number(distance),
       });
       if (error) throw error;
-      console.log('Artists found:', artists);
       setSearchResults(artists || []);
     } catch (error) {
       console.error('Error searching artists by distance:', error);
@@ -219,7 +217,7 @@ export default function SearchScreen() {
     header: {
       paddingHorizontal: 20,
       marginBottom: 15,
-      marginTop: 95,
+      marginTop: 65,
     },
     headerTitle: {
       fontSize: 28,

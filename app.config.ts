@@ -27,7 +27,7 @@ export default {
         foregroundImage: "./assets/images/icon.png",
         backgroundColor: "#ffffff"
       },
-      package: "com.yourcompany.app",
+      package: "com.yourcompany.appname",
       config: {
         googleMaps: {
           apiKey: process.env.YOUR_GOOGLE_MAPS_API_KEY
