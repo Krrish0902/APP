@@ -43,7 +43,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Error in fetchArtistProfile:', error);
         return;
       }
-      console.log('Artist profile fetched:', artist);
       setArtist(artist);
     } catch (error) {
       console.error('Error fetching artist profile:', error);
