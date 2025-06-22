@@ -7,10 +7,14 @@ import { useTheme } from '../../src/context/ThemeContext';
 import { PlatformPressable } from '@react-navigation/elements';
 import { Stack } from 'expo-router';
 
+
+
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
+
+
   
   return (
     <GestureHandlerRootView style={styles.container}>

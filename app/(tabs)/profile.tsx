@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Dimensions, Switch, Platform, FlatList, Modal } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, TextInput, Dimensions, Switch, Platform, FlatList, Modal} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
@@ -29,6 +29,7 @@ export default function ProfileScreen() {
   const [videos, setVideos] = useState<Array<{ id: string; file_path: string; created_at: string }>>([]);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [videoModalVisible, setVideoModalVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const videoRef = useRef(null);
   const [editForm, setEditForm] = useState({
     name: '',
@@ -450,6 +451,13 @@ export default function ProfileScreen() {
       fetchUserVideos();
     }
   }, [artist]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refreshArtistProfile(); // Refresh artist data
+    await fetchUserVideos();      // Refresh videos
+    setRefreshing(false);
+  };
 
   const fetchUserVideos = async () => {
     if (!artist) return;
@@ -1088,6 +1096,8 @@ export default function ProfileScreen() {
           return null;
         }}
         keyExtractor={(item) => item.key}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
       />
       {/* Video Modal */}
       <Modal

@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 
+
 // Get screen dimensions and add extra padding to ensure proper spacing
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 const router = useRouter();
@@ -304,6 +305,7 @@ export default function HomeScreen() {
           overScrollMode="never"
           contentContainerStyle={{
             height: videos.length * SCREEN_HEIGHT,
+            flexGrow: 1,
           }}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
