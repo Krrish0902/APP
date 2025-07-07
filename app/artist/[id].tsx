@@ -180,16 +180,33 @@ export default function ArtistProfileScreen() {
                 </View>
                 
                 <View style={styles.profileHeader}>
-                  <TouchableOpacity style={styles.avatarContainer}>
-                    <Image 
-                      source={{ 
-                        uri: artist.profile_picture_url || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
+                  <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'center' }}>
+                    <TouchableOpacity style={styles.avatarContainer}>
+                      <Image 
+                        source={{ 
+                          uri: artist.profile_picture_url || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
+                        }}
+                        style={styles.avatar}
+                      />
+                      <View style={styles.onlineIndicator} />
+                    </TouchableOpacity>
+                    {/* Calendar icon button next to profile pic */}
+                    <TouchableOpacity
+                      style={{
+                        marginLeft: 16,
+                        backgroundColor: '#0066ff',
+                        borderRadius: 16,
+                        padding: 8,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        height: 32,
+                        width: 32,
                       }}
-                      style={styles.avatar}
-                    />
-                    <View style={styles.onlineIndicator} />
-                  </TouchableOpacity>
-                  
+                      onPress={() => router.push(`/artist/calendar-view?artistId=${artist.id}`)}
+                    >
+                      <Ionicons name="calendar-outline" size={16} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
                   <Animated.View entering={FadeInUp} style={styles.profileInfo}>
                     <View style={styles.usernameContainer}>
                       <Text style={styles.username} numberOfLines={1}>@{artist.user_id}</Text>
@@ -425,6 +442,7 @@ const styles = StyleSheet.create({
   avatarContainer: {
     position: 'relative',
     marginBottom: 20,
+    marginLeft:50,
   },
   avatar: {
     width: 120,

@@ -41,6 +41,8 @@ export default function ProfileScreen() {
     latitude: '',
   });
   const [isFetchingLocation, setIsFetchingLocation] = useState(false); // Add state for location fetching
+  // Removed calendar state
+  // Removed all calendar event state and logic
 
   const styles = StyleSheet.create({
     container: {
@@ -100,6 +102,7 @@ export default function ProfileScreen() {
     avatarContainer: {
       position: 'relative',
       marginBottom: 20,
+      marginLeft:50,
     },
     avatar: {
       width: 120,
@@ -932,21 +935,38 @@ export default function ProfileScreen() {
                 </View>
 
                 <View style={styles.profileHeader}>
-                  <TouchableOpacity 
-                    style={styles.avatarContainer}
-                    onPress={handleUpdateProfilePicture}
-                    onLongPress={handleLongPressAvatar}
-                    delayLongPress={500}
-                  >
-                    <Image 
-                      source={{ 
-                        uri: (artist as any).profile_picture_url || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
+                  <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'center' }}>
+                    <TouchableOpacity 
+                      style={styles.avatarContainer}
+                      onPress={handleUpdateProfilePicture}
+                      onLongPress={handleLongPressAvatar}
+                      delayLongPress={500}
+                    >
+                      <Image 
+                        source={{ 
+                          uri: (artist as any).profile_picture_url || 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&auto=format&fit=crop&q=60'
+                        }}
+                        style={styles.avatar}
+                      />
+                      <View style={styles.onlineIndicator} />
+                    </TouchableOpacity>
+                    {/* Calendar icon button next to profile pic */}
+                    <TouchableOpacity
+                      style={{
+                        marginLeft: 16,
+                        backgroundColor: '#0066ff',
+                        borderRadius: 16,
+                        padding: 8,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        height: 32,
+                        width: 32,
                       }}
-                      style={styles.avatar}
-                    />
-                    <View style={styles.onlineIndicator} />
-                  </TouchableOpacity>
-                  
+                      onPress={() => router.push('/artist/calendar')}
+                    >
+                      <Ionicons name="calendar-outline" size={16} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
                   {isEditing ? (
                     <Animated.View 
                       entering={FadeInUp} 
@@ -1144,6 +1164,9 @@ export default function ProfileScreen() {
           )}
         </View>
       </Modal>
+
+      {/* --- Calendar Modal --- */}
+      {/* Calendar modal and event logic removed. Calendar is now a separate page. */}
     </View>
   
   );
